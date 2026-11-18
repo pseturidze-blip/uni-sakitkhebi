@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// UNI Mixed-Use — საკითხები
+// Only signed-in users whose (lower-case) e-mail is listed in config/editors.emails
+// can read or change anything. Everyone else is refused by the database itself.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true;
+    }
+
+    function isEditor() {
+      return signedIn()
+        && request.auth.token.email.lower()
+           in get(/databases/$(database)/documents/config/editors).data.emails;
+    }
+
+    function validIssue() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['n', 'topic', 'title', 'desc', 'note', 'status',
+                              'priority', 'people', 'subs', 'updatedAt', 'updatedBy'])
+        && d.n is int
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 500
+        && d.topic is string && d.topic.size() <= 100
+        && d.desc is string && d.desc.size() <= 20000
+        && d.note is string && d.note.size() <= 20000
+        && d.status in ['open', 'discuss', 'wait', 'done']
+        && (d.priority == null || d.priority in [1, 2, 3, 4])
+        && d.people is list && d.people.size() <= 50
+        && d.subs is list && d.subs.size() <= 300
+        && d.updatedBy == request.auth.token.email
+        && d.updatedAt == request.time;
+    }
+
+    // Allow-list: edited only in the Firebase console, never from the app.
+    match /config/{doc} {
+      allow read, write: if false;
+    }
+
+    // Running issue number (№).
+    match /meta/counter {
+      allow read: if isEditor();
+      allow write: if isEditor() && request.resource.data.n is int;
+    }
+
+    match /issues/{id} {
+      allow read: if isEditor();
+      allow create, update: if isEditor() && validIssue();
+      allow delete: if isEditor();
+    }
+
+    match /comments/{id} {
+      allow read: if isEditor();
+      allow create: if isEditor()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.authorEmail == request.auth.token.email
+        && request.resource.data.authorName is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 10000
+        && request.resource.data.issue is string
+        && exists(/databases/$(database)/documents/issues/$(request.resource.data.issue))
+        && request.resource.data.ts == request.time;
+      allow update: if false;
+      // Any editor may delete (needed when an issue and its comments are deleted);
+      // the app shows the delete button only on your own comments.
+      allow delete: if isEditor();
+    }
+
+    // Everything else is closed.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

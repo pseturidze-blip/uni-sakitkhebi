@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UNI Mixed-Use — საკითხები</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&family=Noto+Serif+Georgian:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEDEA; --paper:#F8F8F6; --ink:#1E2427; --muted:#646C71; --line:#CDD0CA; --soft:#E2E4DF;
+  --accent:#A8281F; --accent-ink:#fff;
+  --s-open:#7A8288; --s-discuss:#A86A12; --s-wait:#2C628C; --s-done:#2D7A4B;
+  --s-open-bg:#E3E5E2; --s-discuss-bg:#F3E6CF; --s-wait-bg:#D9E6F0; --s-done-bg:#D8EBDD;
+  --sans:"Noto Sans Georgian","Sylfaen","Segoe UI",system-ui,sans-serif;
+  --serif:"Noto Serif Georgian","Sylfaen",Georgia,serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#161A1C; --paper:#1F2427; --ink:#E6E8E5; --muted:#9AA2A6; --line:#343B3F; --soft:#2A3034;
+  --accent:#E0574B; --accent-ink:#1A0A08;
+  --s-open:#A3ABB0; --s-discuss:#E2A44A; --s-wait:#7DB4DC; --s-done:#6CC18E;
+  --s-open-bg:#2B3134; --s-discuss-bg:#3A2E1A; --s-wait-bg:#1D3242; --s-done-bg:#1D3426;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#161A1C; --paper:#1F2427; --ink:#E6E8E5; --muted:#9AA2A6; --line:#343B3F; --soft:#2A3034;
+  --accent:#E0574B; --accent-ink:#1A0A08;
+  --s-open:#A3ABB0; --s-discuss:#E2A44A; --s-wait:#7DB4DC; --s-done:#6CC18E;
+  --s-open-bg:#2B3134; --s-discuss-bg:#3A2E1A; --s-wait-bg:#1D3242; --s-done-bg:#1D3426;
+  color-scheme:dark;}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hide{display:none!important}
+.cc{font-size:12.5px;color:var(--muted)}
+
+/* gate */
+.gate{min-height:100vh;display:grid;place-items:center;padding:20px;text-align:center}
+.gcard{max-width:420px}
+.gcard h1{margin-bottom:24px}
+
+/* header */
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 80px}
+header.top{display:flex;align-items:center;gap:10px;position:relative}
+h1{font:700 clamp(22px,3.6vw,32px)/1.2 var(--serif);margin:0;letter-spacing:-.01em}
+header.top h1{flex:1;min-width:0}
+.icon{border:1px solid var(--line);background:var(--paper);border-radius:50%;width:36px;height:36px;display:grid;place-items:center;padding:0;font-size:16px;flex:none;overflow:hidden}
+.icon img{width:100%;height:100%;object-fit:cover}
+.menu{position:absolute;right:0;top:44px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:220px;z-index:30;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.menu .em{font-size:13px;color:var(--muted);margin-bottom:8px;word-break:break-all}
+
+/* status legend */
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13.5px;color:var(--muted);margin-top:14px}
+.legend button{background:none;border:0;padding:2px 0;display:flex;gap:6px;align-items:center;color:inherit}
+.legend button[aria-pressed="true"]{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:4px}
+.legend b{color:var(--ink);font-variant-numeric:tabular-nums}
+.sdot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+
+/* toolbar */
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);margin:12px -20px 0;padding:12px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.search{flex:1 1 120px;min-width:110px;padding:8px 12px;border:1px solid var(--line);background:var(--paper);border-radius:6px}
+.filters{display:contents}
+select.f{padding:8px 10px;border:1px solid var(--line);background:var(--paper);border-radius:6px;max-width:150px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}
+.seg button{border:0;background:none;padding:7px 12px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--paper);padding:7px 14px;border-radius:6px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:none}
+.btn.sm{padding:3px 10px;font-size:13px}
+.btn.big{padding:11px 22px;font-size:16px}
+.btn.danger{color:var(--accent);border-color:transparent;background:none;margin-left:auto}
+.btn:disabled{opacity:.6;cursor:default}
+.fbtn{display:none}
+#banner:not(:empty){margin-top:14px;padding:10px 14px;border-radius:6px;background:var(--s-discuss-bg);font-size:13.5px}
+
+/* list */
+.topic{margin-top:26px}
+.topic h2{font:700 19px/1.3 var(--serif);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.topic h2 small{font:500 13px var(--sans);color:var(--muted)}
+.rows{background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);cursor:pointer}
+.row:first-child{border-top:0}
+.row:hover{background:var(--soft)}
+.num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13.5px}
+.ttl{font-weight:600}
+.meta{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:12px;padding:1px 8px;border-radius:20px;border:1px solid var(--line);background:var(--bg);white-space:nowrap}
+.pn{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:11.5px;font-weight:700;color:var(--paper);flex:none}
+.pn.p1{background:var(--accent)}.pn.p2{background:var(--s-discuss)}.pn.p3{background:var(--s-wait)}.pn.p4{background:var(--s-open)}
+.pn.p0{border:1px dashed var(--line);color:var(--muted);font-weight:500}
+.empty{margin:40px 0;padding:30px;border:1px dashed var(--line);border-radius:8px;text-align:center;color:var(--muted)}
+.empty p{margin:0 0 12px}
+
+/* board */
+.board{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:12px;margin-top:22px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--soft);border-radius:8px;padding:10px;min-height:120px}
+.col h3{margin:2px 4px 10px;font-size:14px;display:flex;gap:8px;align-items:center}
+.col h3 small{color:var(--muted);font-weight:500}
+.col.over{outline:2px dashed var(--accent);outline-offset:-4px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:9px 11px;margin-bottom:8px;cursor:pointer}
+.card .ct{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.card .chips{margin-top:6px}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,14,16,.38);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--paper);z-index:21;transform:translateX(102%);transition:transform .25s ease;display:flex;flex-direction:column;border-left:1px solid var(--line);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.drawer.on{transform:none}
+@media (prefers-reduced-motion:reduce){.drawer,.scrim{transition:none}}
+.dh{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--line)}
+.dht{font:700 16px var(--serif)}
+.dh .x{margin-left:auto;border:0;background:none;font-size:24px;line-height:1;padding:2px 8px}
+.db{overflow-y:auto;padding:18px 20px 30px;flex:1}
+.vhead{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.vhead>div{flex:1;min-width:0}
+.vtitle{font:700 20px/1.3 var(--serif)}
+.vtopic{font-size:13px;color:var(--muted);margin-top:2px}
+.vtext{white-space:pre-wrap;font-size:14.5px;margin:0 0 14px}
+.notebox{background:var(--bg);border-radius:6px;padding:10px 12px;margin-bottom:16px}
+.notebox .vtext{margin:0}
+.field{margin-bottom:16px}
+.field label,.flabel{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.field input,.field textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:8px 10px}
+.field textarea{resize:vertical;min-height:70px;line-height:1.5}
+.field .big{font:700 19px/1.3 var(--serif)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:4px 12px 4px 8px;font-size:13px;display:flex;gap:6px;align-items:center}
+.opts button[aria-pressed="true"]{font-weight:600;border-color:var(--c,var(--ink));background:var(--cb,var(--soft));color:var(--c,var(--ink))}
+.people{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.people .chip{font-size:13px;padding:3px 4px 3px 10px;display:inline-flex;gap:2px;align-items:center}
+.people .chip button{border:0;background:none;padding:0 5px;color:var(--muted);font-size:15px;line-height:1}
+input.inl{border:1px dashed var(--line);background:none;border-radius:20px;padding:3px 10px;font-size:13px;width:130px}
+input.inl.wide{width:100%;border-radius:6px;padding:7px 10px;margin-top:8px}
+.sec{border-top:1px solid var(--line);padding-top:14px;margin-top:18px}
+.sec h4{margin:0 0 8px;font:700 15px var(--serif)}
+.sec h4 small{font:500 13px var(--sans);color:var(--muted)}
+.subt{border:0;background:none;padding:0;font:700 15px var(--serif);display:flex;gap:8px;align-items:center}
+.subt span{font:400 13px var(--sans);color:var(--muted)}
+.sublist{list-style:none;margin:8px 0 0;padding:0}
+.sublist li{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--soft)}
+.sublist li.done span{text-decoration:line-through;color:var(--muted)}
+.sublist input{margin-top:5px;accent-color:var(--accent)}
+.sublist span{flex:1;font-size:14px}
+.sublist .rm{border:0;background:none;color:var(--muted);padding:0 4px}
+.cm{padding:9px 0;border-bottom:1px solid var(--soft)}
+.cm .who{font-size:12.5px;color:var(--muted);display:flex;gap:8px}
+.cm .who b{color:var(--ink);font-weight:600}
+.cm .who button{margin-left:auto;border:0;background:none;color:var(--muted);font-size:12px}
+.cm p{margin:3px 0 0;white-space:pre-wrap;font-size:14px}
+.cmnew textarea{width:100%;min-height:64px;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:8px 10px;resize:vertical;margin-top:10px}
+.cmnew .r{display:flex;justify-content:flex-end;margin-top:6px}
+.editbar{display:flex;gap:8px}
+.foot{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:14px;margin-top:22px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+
+@media (max-width:700px){
+  .wrap{padding:16px 16px 80px}
+  .bar{margin:12px -16px 0;padding:10px 16px}
+  .search{flex:1 1 calc(100% - 120px);min-width:0}
+  #expBtn{display:none}
+  .fbtn{display:inline-flex}
+  .filters{display:none}
+  .filters.open{display:flex;flex-direction:column;gap:8px;width:100%;order:5}
+  .filters.open select.f{max-width:none;width:100%}
+  .seg{flex:1 1 auto}.seg button{flex:1;padding:7px 8px}
+  .row{grid-template-columns:26px minmax(0,1fr);padding:10px 12px}
+  .row .meta{grid-column:2;justify-content:flex-start;flex-wrap:wrap}
+  .board{grid-template-columns:repeat(4,82%);scroll-snap-type:x mandatory}
+  .col{scroll-snap-align:start}
+  .db{padding:16px 16px 30px}.dh{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+<div class="gate" id="gate"><div class="gcard"><p class="cc">იტვირთება…</p></div></div>
+
+<div class="wrap hide" id="app">
+  <header class="top">
+    <h1>UNI Mixed-Use — საკითხები</h1>
+    <button class="icon" id="themeBtn"></button>
+    <button class="icon" id="meBtn" aria-label="ანგარიში" aria-haspopup="true"></button>
+    <div class="menu hide" id="meMenu"><div class="em" id="meEmail"></div><div class="editbar"><button class="btn sm" id="expBtn2">CSV ჩამოტვირთვა</button><button class="btn sm" id="signOut">გასვლა</button></div></div>
+  </header>
+  <div class="legend" id="legend"></div>
+  <div id="banner"></div>
+
+  <div class="bar">
+    <input class="search" id="q" type="search" placeholder="ძებნა" aria-label="ძებნა">
+    <button class="btn fbtn" id="fBtn" aria-expanded="false" aria-controls="filters">ფილტრი<span id="fCount"></span></button>
+    <div class="filters" id="filters">
+      <select class="f" id="fTopic" aria-label="თემა"></select>
+      <select class="f" id="fPerson" aria-label="პირი"></select>
+      <select class="f" id="fPrio" aria-label="პრიორიტეტი"></select>
+    </div>
+    <div class="seg" role="group" aria-label="ხედი">
+      <button data-v="topic">თემა</button><button data-v="prio">პრიორიტეტი</button><button data-v="board">დაფა</button>
+    </div>
+    <button class="btn ghost" id="expBtn" title="ჩამოტვირთვა (CSV)">CSV</button>
+    <button class="btn primary" id="addBtn">+ ახალი</button>
+  </div>
+
+  <main id="view"></main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="საკითხი" aria-hidden="true"></aside>
+<div class="toast" id="toast" role="status"></div>
+<datalist id="dlTopics"></datalist>
+<datalist id="dlPeople"></datalist>
+<input type="file" id="importFile" accept=".json,application/json" class="hide">
+
+<script type="module">
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+import { getFirestore, collection, doc, onSnapshot, updateDoc, deleteDoc, addDoc, writeBatch, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+/* ---------- constants ---------- */
+const ST=[['open','ღია'],['discuss','განხილვაში'],['wait','მოლოდინში'],['done','გადაწყვეტილია']];
+const STL=Object.fromEntries(ST);
+const PR=[[1,'დაწყებამდე'],[2,'კარკასი'],[3,'მოპირკეთება'],[4,'ექსპლუატაცია']];
+const PRL=Object.fromEntries(PR);
+const PRF={1:'მშენებლობის დაწყებამდე',2:'კარკასის ეტაპზე',3:'მოპირკეთების ეტაპზე',4:'ექსპლუატაციამდე'};
+const TOPIC_ORDER=['ფასადი','ინტერიერი','ლიფტი','განათება','გამწვანება','კეთილმოწყობა','პანდუსი','პარკინგი','საინჟინრო','მართვა და სერვისი','სხვა'];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tms=v=>v&&typeof v.toMillis==='function'?v.toMillis():(typeof v==='number'?v:0);
+
+const S={issues:new Map(),comments:[],view:'topic',q:'',topic:'',person:'',prio:'',status:'',open:null,edit:false,subsOpen:false,newTopic:'',pending:null,loaded:false,user:null};
+let auth,db,unsubs=[];
+
+/* ---------- theme ---------- */
+const THEMES={auto:['◐','ავტო'],light:['☀','ღია'],dark:['☾','მუქი']};
+let theme='auto';try{theme=localStorage.getItem('uni-theme')||'auto'}catch(e){}
+if(!THEMES[theme])theme='auto';
+function applyTheme(){
+  const r=document.documentElement;theme==='auto'?r.removeAttribute('data-theme'):r.setAttribute('data-theme',theme);
+  const b=$('#themeBtn');b.textContent=THEMES[theme][0];b.title='თემა: '+THEMES[theme][1];b.setAttribute('aria-label',b.title)}
+applyTheme();
+
+/* ---------- gate / auth ---------- */
+function gate(kind,extra){
+  $('#app').classList.add('hide');closeIssue(true);
+  const g=$('#gate');g.classList.remove('hide');
+  const em=S.user?esc(S.user.email):'';
+  const body={
+    config:`<p>Firebase-ის პარამეტრები არ არის ჩასმული.</p><p class="cc">firebase-config.js — იხ. SETUP.md</p>`,
+    loading:`<p class="cc">იტვირთება…</p>`,
+    signin:`<button class="btn primary big" id="signIn">Google-ით შესვლა</button>`,
+    denied:`<p><b>${em}</b></p><p>ამ ანგარიშს წვდომა არ აქვს.</p><button class="btn" id="signOut">სხვა ანგარიშით შესვლა</button>`,
+    error:`<p>მონაცემები ვერ ჩაიტვირთა${extra?` (${esc(extra)})`:''}.</p><button class="btn" id="reload">თავიდან</button>`
+  }[kind];
+  g.innerHTML=`<div class="gcard"><h1>UNI Mixed-Use — საკითხები</h1>${body}</div>`;
+}
+function showApp(){
+  $('#gate').classList.add('hide');$('#app').classList.remove('hide');
+  const u=S.user,b=$('#meBtn');
+  b.innerHTML=u.photoURL?`<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">`:esc((u.displayName||u.email||'?').trim()[0].toUpperCase());
+  $('#meEmail').textContent=u.email;
+}
+async function doSignIn(){
+  const p=new GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+  try{await signInWithPopup(auth,p)}
+  catch(e){
+    if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')await signInWithRedirect(auth,p);
+    else if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request')toast('შესვლა ვერ მოხერხდა ('+e.code+')');
+  }
+}
+
+/* ---------- data ---------- */
+function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];S.issues=new Map();S.comments=[];S.loaded=false}
+function startListeners(){
+  unsubs.push(onSnapshot(collection(db,'issues'),snap=>{
+    const m=new Map();snap.docs.forEach(d=>m.set(d.id,{...d.data({serverTimestamps:'estimate'}),id:d.id}));
+    S.issues=m;if(!S.loaded){S.loaded=true;showApp()}render();
+  },err=>{S.loaded=false;gate(err.code==='permission-denied'?'denied':'error',err.code)}));
+  unsubs.push(onSnapshot(collection(db,'comments'),snap=>{
+    S.comments=snap.docs.map(d=>({...d.data({serverTimestamps:'estimate'}),id:d.id}));if(S.loaded)render();
+  },()=>{}));
+}
+const stamp=()=>({updatedAt:serverTimestamp(),updatedBy:S.user.email});
+function writeErr(e){
+  if(e&&e.code==='permission-denied')toast('შენახვის უფლება არ გაქვთ.');
+  else toast('ვერ შეინახა. სცადეთ თავიდან.');
+  console.error(e);
+}
+function save(id,patch){return updateDoc(doc(db,'issues',id),{...patch,...stamp()}).catch(writeErr)}
+async function createIssue(data){
+  const ref=doc(collection(db,'issues')),cref=doc(db,'meta','counter');
+  const localMax=Math.max(0,...all().map(i=>i.n||0));
+  await runTransaction(db,async tx=>{
+    const c=await tx.get(cref);
+    const n=Math.max(c.exists()?(c.data().n||0):0,localMax)+1;
+    tx.set(cref,{n});tx.set(ref,{...data,n,createdAt:Date.now(),...stamp()});
+  });
+  return ref.id;
+}
+async function removeIssue(id){
+  const b=writeBatch(db);b.delete(doc(db,'issues',id));
+  S.comments.filter(c=>c.issue===id).forEach(c=>b.delete(doc(db,'comments',c.id)));
+  await b.commit();
+}
+function addComment(){
+  const inp=$('#newCm');const text=(inp.value||'').trim();if(!text)return;const u=S.user;
+  inp.value='';
+  addDoc(collection(db,'comments'),{issue:S.open,text,authorUid:u.uid,authorEmail:u.email,authorName:u.displayName||u.email,ts:serverTimestamp()})
+    .catch(e=>{inp.value=text;writeErr(e)});
+}
+
+/* position + summary → note (only when both exist the summary keeps its label) */
+const mergeNote=(p,s)=>{p=p||'';s=s||'';return p&&s?p+'\n\nშეჯამება: '+s:(p||s)};
+async function importJson(file){
+  let arr;try{arr=JSON.parse(await file.text())}catch(e){toast('JSON ფაილი ვერ წაიკითხა.');return}
+  if(!Array.isArray(arr)){toast('ფაილში საკითხების სია არ არის.');return}
+  const b=writeBatch(db);let max=0,count=0;
+  arr.forEach((x,ix)=>{
+    if(!x||!x.id||!x.title)return;
+    const d={
+      n:Number.isInteger(x.n)?x.n:ix+1,
+      topic:String(x.topic||'სხვა'),title:String(x.title),desc:String(x.desc||''),
+      note:mergeNote(x.position,x.summary),
+      status:STL[x.status]?x.status:'open',
+      priority:[1,2,3,4].includes(x.priority)?x.priority:null,
+      people:Array.isArray(x.people)?x.people.map(String):[],
+      subs:Array.isArray(x.subs)?x.subs.map(s=>({t:String(s.t||''),done:!!s.done})):[],
+      orig:String(x.orig||''),
+      legacy:{position:String(x.position||''),summary:String(x.summary||'')},
+      createdAt:typeof x.createdAt==='number'?x.createdAt:Date.now(),
+      ...stamp()
+    };
+    max=Math.max(max,d.n);count++;b.set(doc(db,'issues',String(x.id)),d);
+  });
+  if(!count){toast('ფაილში საკითხები ვერ მოიძებნა.');return}
+  b.set(doc(db,'meta','counter'),{n:max});
+  try{await b.commit();toast(`იმპორტირებულია ${count} საკითხი`)}catch(e){writeErr(e)}
+}
+
+/* ---------- helpers ---------- */
+const all=()=>[...S.issues.values()];
+function topicsList(){const t=new Set(all().map(i=>i.topic||'სხვა'));return [...TOPIC_ORDER.filter(x=>t.has(x)),...[...t].filter(x=>!TOPIC_ORDER.includes(x)).sort((a,b)=>a.localeCompare(b,'ka'))]}
+function peopleList(){const p=new Set();all().forEach(i=>(i.people||[]).forEach(x=>p.add(x)));return [...p].sort((a,b)=>a.localeCompare(b,'ka'))}
+function commentsOf(id){return S.comments.filter(c=>c.issue===id).sort((a,b)=>tms(a.ts)-tms(b.ts))}
+function matches(i){
+  if(S.topic&&(i.topic||'სხვა')!==S.topic)return false;
+  if(S.status&&i.status!==S.status)return false;
+  if(S.person&&!(i.people||[]).includes(S.person))return false;
+  if(S.prio&&String(i.priority||0)!==S.prio)return false;
+  if(S.q){const q=S.q.toLowerCase();
+    const hay=[i.title,i.desc,i.note,i.topic,(i.people||[]).join(' '),(i.subs||[]).map(s=>s.t).join(' '),commentsOf(i.id).map(c=>c.text).join(' ')].join(' ').toLowerCase();
+    if(!hay.includes(q))return false}
+  return true}
+const byN=(a,b)=>(a.n||0)-(b.n||0);
+const cur=()=>S.issues.get(S.open);
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)}
+function fmt(ts){const v=tms(ts);if(!v)return '';const d=new Date(v);return d.toLocaleDateString('ka-GE',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit'})}
+const badge=p=>p?`<b class="pn p${p}" title="${p} · ${PRF[p]}">${p}</b>`:`<b class="pn p0" title="პრიორიტეტი —">–</b>`;
+const sdot=k=>`<span class="sdot" role="img" style="background:var(--s-${k})" title="${STL[k]||''}" aria-label="${STL[k]||''}"></span>`;
+const chips=ps=>(ps||[]).length?`<span class="chips">${ps.map(p=>`<span class="chip">${esc(p)}</span>`).join('')}</span>`:'';
+
+/* ---------- render ---------- */
+function render(){
+  if(!S.loaded)return;
+  const items=all();
+  const cnt={};ST.forEach(([k])=>cnt[k]=0);items.forEach(i=>cnt[i.status]=(cnt[i.status]||0)+1);
+  $('#legend').innerHTML=`<button data-st="" aria-pressed="${!S.status}">ყველა <b>${items.length}</b></button>`+
+    ST.map(([k,l])=>`<button data-st="${k}" aria-pressed="${S.status===k}">${sdot(k)}${l} <b>${cnt[k]}</b></button>`).join('');
+  const tps=topicsList(),pps=peopleList(),pc=p=>items.filter(i=>(i.priority||0)===p).length;
+  $('#fTopic').innerHTML=`<option value="">თემა</option>`+tps.map(t=>`<option ${t===S.topic?'selected':''}>${esc(t)}</option>`).join('');
+  $('#fPerson').innerHTML=`<option value="">პირი</option>`+pps.map(t=>`<option ${t===S.person?'selected':''}>${esc(t)}</option>`).join('');
+  $('#fPrio').innerHTML=`<option value="">პრიორიტეტი</option>`+PR.map(([p,l])=>`<option value="${p}" ${String(p)===S.prio?'selected':''}>${p} · ${l} (${pc(p)})</option>`).join('')+`<option value="0" ${S.prio==='0'?'selected':''}>— (${pc(0)})</option>`;
+  $('#dlTopics').innerHTML=tps.map(t=>`<option value="${esc(t)}">`).join('');
+  $('#dlPeople').innerHTML=pps.map(t=>`<option value="${esc(t)}">`).join('');
+  const nf=[S.topic,S.person,S.prio].filter(Boolean).length;$('#fCount').textContent=nf?' · '+nf:'';
+  document.querySelectorAll('.seg [data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.view));
+
+  const V=$('#view'),vis=items.filter(matches);
+  if(!items.length)V.innerHTML=`<div class="empty"><p>საკითხები ჯერ არ არის.</p><button class="btn" id="importBtn">იმპორტი (JSON)</button></div>`;
+  else if(!vis.length)V.innerHTML=`<div class="empty">ვერაფერი მოიძებნა.</div>`;
+  else if(S.view==='prio'){
+    V.innerHTML=[...PR,[0,'პრიორიტეტის გარეშე']].map(([p,l])=>{const rs=vis.filter(i=>(i.priority||0)===p).sort(byN);if(!rs.length)return '';
+      return `<section class="topic"><h2>${p?badge(p)+`${p} · ${esc(l)}`:esc(l)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('');
+  }else if(S.view==='topic'){
+    V.innerHTML=tps.map(t=>{const rs=vis.filter(i=>(i.topic||'სხვა')===t).sort(byN);if(!rs.length)return '';
+      return `<section class="topic"><h2>${esc(t)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('');
+  }else{
+    V.innerHTML=`<div class="board">${ST.map(([k,l])=>{const cs=vis.filter(i=>i.status===k).sort((a,b)=>((a.priority||9)-(b.priority||9))||byN(a,b));
+      return `<div class="col" data-col="${k}"><h3>${sdot(k)}${l} <small>${cs.length}</small></h3>${cs.map(cardHTML).join('')}</div>`}).join('')}</div>`;
+  }
+  renderDrawer(false);
+}
+const rowHTML=i=>`<div class="row" role="button" tabindex="0" data-open="${i.id}"><span class="num">${i.n||''}</span><span class="ttl">${esc(i.title)}</span><span class="meta">${chips(i.people)}${badge(i.priority)}${sdot(i.status)}</span></div>`;
+const cardHTML=i=>`<div class="card" role="button" tabindex="0" draggable="true" data-open="${i.id}"><div class="ct"><span class="num">${i.n||''}</span>${badge(i.priority)}</div><div class="ttl">${esc(i.title)}</div>${chips(i.people)}</div>`;
+
+/* ---------- drawer ---------- */
+function viewHTML(i){
+  const subs=i.subs||[],sd=subs.filter(s=>s.done).length,cms=commentsOf(i.id),long=subs.length>3,showSubs=!long||S.subsOpen;
+  return `<div class="dh"><span class="num">№ ${i.n||''}</span><button class="x" aria-label="დახურვა">×</button></div>
+  <div class="db">
+    <div class="vhead"><div><div class="vtitle">${esc(i.title)}</div><div class="vtopic">${esc(i.topic)}</div></div><button class="btn sm" id="startEdit">რედაქტირება</button></div>
+    ${i.desc?`<p class="vtext">${esc(i.desc)}</p>`:''}
+    ${i.note?`<div class="notebox"><span class="flabel">შენიშვნა</span><div class="vtext">${esc(i.note)}</div></div>`:''}
+    <div class="field"><span class="flabel">სტატუსი</span><div class="opts">${ST.map(([k,l])=>`<button data-setst="${k}" aria-pressed="${i.status===k}" style="--c:var(--s-${k});--cb:var(--s-${k}-bg)">${sdot(k)}${l}</button>`).join('')}</div></div>
+    <div class="field"><span class="flabel">პრიორიტეტი</span><div class="opts">${PR.map(([p,l])=>`<button data-setpr="${p}" aria-pressed="${i.priority===p}" title="${PRF[p]}">${badge(p)}${l}</button>`).join('')}</div></div>
+    <div class="field"><span class="flabel">პირები</span><div class="people">${(i.people||[]).map((p,ix)=>`<span class="chip">${esc(p)}<button data-rmp="${ix}" aria-label="${esc(p)} — წაშლა">×</button></span>`).join('')}<input id="newPerson" class="inl" list="dlPeople" placeholder="+ პირი" aria-label="პირის დამატება"></div></div>
+    <div class="sec">${long?`<button class="subt" id="subToggle" aria-expanded="${S.subsOpen}">${subs.length} ქვეპუნქტი <span>· ${sd} შესრულებული ${S.subsOpen?'▴':'▾'}</span></button>`:`<h4>ქვეპუნქტები${subs.length?` <small>${sd}/${subs.length}</small>`:''}</h4>`}
+      ${showSubs?`<ul class="sublist">${subs.map((s,ix)=>`<li class="${s.done?'done':''}"><input type="checkbox" data-subchk="${ix}" ${s.done?'checked':''} aria-label="შესრულებულია"><span>${esc(s.t)}</span><button class="rm" data-rmsub="${ix}" aria-label="ქვეპუნქტის წაშლა">×</button></li>`).join('')}</ul><input id="newSub" class="inl wide" placeholder="+ ქვეპუნქტი" aria-label="ქვეპუნქტის დამატება">`:''}</div>
+    <div class="sec"><h4>კომენტარები${cms.length?` <small>${cms.length}</small>`:''}</h4>
+      ${cms.map(c=>`<div class="cm"><div class="who"><b>${esc(c.authorName||c.authorEmail||'')}</b><span>${fmt(c.ts)}</span>${c.authorUid===S.user.uid?`<button data-rmc="${c.id}">წაშლა</button>`:''}</div><p>${esc(c.text)}</p></div>`).join('')}
+      <div class="cmnew"><textarea id="newCm" placeholder="კომენტარი…" aria-label="კომენტარი"></textarea><div class="r"><button class="btn primary" id="addCm">გაგზავნა</button></div></div></div>
+    <div class="foot">${i.orig?`<span class="cc">თავდაპირველ ფაილში: № ${esc(i.orig)}</span>`:''}<button class="btn danger" id="delIssue">წაშლა</button></div>
+  </div>`;
+}
+function editHTML(i){
+  const isNew=!i;i=i||{title:'',topic:S.newTopic,desc:'',note:''};
+  return `<div class="dh">${isNew?'<b class="dht">ახალი საკითხი</b>':`<span class="num">№ ${i.n||''}</span>`}<button class="x" aria-label="დახურვა">×</button></div>
+  <div class="db">
+    <div class="field"><label for="e_title">სათაური</label><input id="e_title" class="big" data-k="title" value="${esc(i.title)}"></div>
+    <div class="field"><label for="e_topic">თემა</label><input id="e_topic" data-k="topic" list="dlTopics" value="${esc(i.topic)}"></div>
+    <div class="field"><label for="e_desc">აღწერა</label><textarea id="e_desc" data-k="desc">${esc(i.desc)}</textarea></div>
+    <div class="field"><label for="e_note">შენიშვნა</label><textarea id="e_note" data-k="note" rows="5">${esc(i.note)}</textarea></div>
+    <div class="editbar"><button class="btn primary" id="saveEdit">შენახვა</button><button class="btn" id="cancelEdit">გაუქმება</button></div>
+  </div>`;
+}
+function renderDrawer(force){
+  const D=$('#drawer');if(!S.open)return;
+  if(S.open==='__new__'){if(force)D.innerHTML=editHTML(null);return}
+  const i=cur();
+  if(!i){if(S.pending===S.open)return;closeIssue(true);if(!force)toast('საკითხი წაიშალა');return}
+  if(S.edit&&!force)return;
+  const keep={};['newCm','newPerson','newSub'].forEach(k=>{const el=document.getElementById(k);if(el)keep[k]=el.value});
+  const ae=document.activeElement,fid=ae&&D.contains(ae)?ae.id:'',sc=D.querySelector('.db')?.scrollTop||0;
+  D.innerHTML=S.edit?editHTML(i):viewHTML(i);
+  if(!force){
+    Object.entries(keep).forEach(([k,v])=>{const el=document.getElementById(k);if(el)el.value=v});
+    const b=D.querySelector('.db');if(b)b.scrollTop=sc;
+    if(fid){const el=document.getElementById(fid);if(el)el.focus()}
+  }
+}
+function showDrawer(){const D=$('#drawer');D.classList.add('on');$('#scrim').classList.add('on');D.setAttribute('aria-hidden','false')}
+function openIssue(id){S.open=id;S.edit=false;S.subsOpen=false;renderDrawer(true);showDrawer();setTimeout(()=>$('#drawer .x')?.focus(),50)}
+function newIssue(){S.open='__new__';S.edit=true;S.newTopic=S.topic||'';renderDrawer(true);showDrawer();setTimeout(()=>$('#e_title')?.focus(),120)}
+function closeIssue(force){
+  if(!force&&S.edit&&isDirty()&&!confirm('შეუნახავი ცვლილებები დაიკარგება. დავხუროთ?'))return;
+  S.open=null;S.edit=false;S.pending=null;const D=$('#drawer');D.classList.remove('on');$('#scrim').classList.remove('on');D.setAttribute('aria-hidden','true')}
+function editValues(){const o={};document.querySelectorAll('#drawer [data-k]').forEach(el=>o[el.dataset.k]=el.value.trim());return o}
+function isDirty(){const v=editValues(),i=S.open==='__new__'?{topic:S.newTopic}:cur();if(!i)return false;return Object.keys(v).some(k=>(i[k]||'')!==v[k])}
+function savePatch(patch){const i=cur();if(!i)return;Object.assign(i,patch);save(i.id,patch);render()}
+async function saveEdit(){
+  const v=editValues();if(!v.title){toast('სათაური ცარიელია.');$('#e_title').focus();return}
+  if(!v.topic)v.topic='სხვა';
+  if(S.open==='__new__'){
+    const btn=$('#saveEdit');btn.disabled=true;
+    try{const id=await createIssue({...v,status:'open',priority:null,people:[],subs:[],orig:''});
+      S.pending=id;S.open=id;S.edit=false;S.subsOpen=false;renderDrawer(true)}
+    catch(e){btn.disabled=false;writeErr(e)}
+    return}
+  const i=cur();if(!i)return;const patch={};Object.keys(v).forEach(k=>{if((i[k]||'')!==v[k])patch[k]=v[k]});
+  S.edit=false;if(Object.keys(patch).length)savePatch(patch);renderDrawer(true)}
+function cancelEdit(){
+  if(isDirty()&&!confirm('გავაუქმოთ ცვლილებები?'))return;
+  if(S.open==='__new__'){closeIssue(true);return}
+  S.edit=false;renderDrawer(true)}
+function addPerson(){const inp=$('#newPerson');const v=(inp.value||'').trim();if(!v)return;const i=cur();const p=[...(i.people||[])];if(!p.includes(v))p.push(v);inp.value='';savePatch({people:p});$('#newPerson')?.focus()}
+function addSub(){const inp=$('#newSub');const v=(inp.value||'').trim();if(!v)return;const i=cur();inp.value='';savePatch({subs:[...(i.subs||[]).map(x=>({...x})),{t:v,done:false}]});$('#newSub')?.focus()}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#meMenu,#meBtn'))$('#meMenu').classList.add('hide');
+  const t=e.target.closest('button,[data-open]');if(!t)return;
+  if(t.dataset.open){openIssue(t.dataset.open);return}
+  if(t.dataset.st!==undefined){S.status=S.status===t.dataset.st?'':t.dataset.st;render();return}
+  if(t.dataset.v){S.view=t.dataset.v;render();return}
+  if(t.dataset.setst){savePatch({status:t.dataset.setst});return}
+  if(t.dataset.setpr){const p=+t.dataset.setpr;savePatch({priority:cur()?.priority===p?null:p});return}
+  if(t.dataset.rmp!==undefined){const p=[...(cur().people||[])];p.splice(+t.dataset.rmp,1);savePatch({people:p});return}
+  if(t.dataset.rmsub!==undefined){if(!confirm('წავშალოთ ქვეპუნქტი?'))return;const s=(cur().subs||[]).map(x=>({...x}));s.splice(+t.dataset.rmsub,1);savePatch({subs:s});return}
+  if(t.dataset.rmc){if(confirm('წავშალოთ კომენტარი?'))deleteDoc(doc(db,'comments',t.dataset.rmc)).catch(writeErr);return}
+  if(t.classList.contains('x')){closeIssue();return}
+  switch(t.id){
+    case 'signIn':doSignIn();break;
+    case 'signOut':signOut(auth);break;
+    case 'reload':location.reload();break;
+    case 'meBtn':$('#meMenu').classList.toggle('hide');break;
+    case 'themeBtn':{const k=Object.keys(THEMES);theme=k[(k.indexOf(theme)+1)%k.length];try{localStorage.setItem('uni-theme',theme)}catch(e){}applyTheme();break}
+    case 'fBtn':{const f=$('#filters'),o=f.classList.toggle('open');t.setAttribute('aria-expanded',o);break}
+    case 'addBtn':newIssue();break;
+    case 'expBtn':case 'expBtn2':exportCsv();break;
+    case 'importBtn':$('#importFile').click();break;
+    case 'startEdit':S.edit=true;renderDrawer(true);setTimeout(()=>$('#e_title')?.focus(),50);break;
+    case 'saveEdit':saveEdit();break;
+    case 'cancelEdit':cancelEdit();break;
+    case 'subToggle':S.subsOpen=!S.subsOpen;renderDrawer(false);break;
+    case 'addCm':addComment();break;
+    case 'delIssue':{const i=cur();if(i&&confirm(`წავშალოთ საკითხი „${i.title}“ და მისი კომენტარები?`)){removeIssue(i.id).then(()=>toast('საკითხი წაიშალა'),writeErr);closeIssue(true)}break}
+  }
+});
+$('#scrim').addEventListener('click',()=>closeIssue());
+document.addEventListener('keydown',e=>{
+  const id=e.target.id;
+  if(e.key==='Escape'&&S.open){S.edit?cancelEdit():closeIssue();return}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('[data-open][role=button]')){e.preventDefault();openIssue(e.target.dataset.open);return}
+  if(e.key==='Enter'&&id==='newPerson'){e.preventDefault();addPerson()}
+  if(e.key==='Enter'&&id==='newSub'){e.preventDefault();addSub()}
+  if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)&&id==='newCm'){e.preventDefault();addComment()}
+  if(e.key==='Enter'&&S.edit&&e.target.dataset?.k&&(e.target.tagName==='INPUT'||e.metaKey||e.ctrlKey)){e.preventDefault();saveEdit()}
+});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.dataset?.subchk!==undefined){const s=(cur().subs||[]).map(x=>({...x}));s[+el.dataset.subchk].done=el.checked;savePatch({subs:s})}
+  if(el.id==='fTopic'){S.topic=el.value;render()}
+  if(el.id==='fPerson'){S.person=el.value;render()}
+  if(el.id==='fPrio'){S.prio=el.value;render()}
+  if(el.id==='importFile'&&el.files[0]){importJson(el.files[0]);el.value=''}
+});
+let qt;$('#q').addEventListener('input',e=>{clearTimeout(qt);qt=setTimeout(()=>{S.q=e.target.value.trim();render()},150)});
+
+/* board drag & drop */
+let dragId=null;
+document.addEventListener('dragstart',e=>{const c=e.target.closest?.('.card');if(c){dragId=c.dataset.open;e.dataTransfer.effectAllowed='move'}});
+document.addEventListener('dragover',e=>{const col=e.target.closest?.('.col');if(col&&dragId){e.preventDefault();col.classList.add('over')}});
+document.addEventListener('dragleave',e=>{const col=e.target.closest?.('.col');if(col)col.classList.remove('over')});
+document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.col.over').forEach(c=>c.classList.remove('over'))});
+document.addEventListener('drop',e=>{const col=e.target.closest?.('.col');if(col&&dragId){e.preventDefault();col.classList.remove('over');const i=S.issues.get(dragId);
+  if(i&&i.status!==col.dataset.col){i.status=col.dataset.col;save(i.id,{status:col.dataset.col});render()}dragId=null}});
+
+/* CSV export (UTF-8 with BOM for Excel) */
+function exportCsv(){
+  const head=['№','თემა','საკითხი','აღწერა','პრიორიტეტი','სტატუსი','შენიშვნა','პირები','ქვეპუნქტები','კომენტარები'];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=topicsList().flatMap(t=>all().filter(i=>(i.topic||'სხვა')===t).sort(byN)).map(i=>[i.n,i.topic,i.title,i.desc,i.priority?i.priority+'. '+PRF[i.priority]:'',STL[i.status],i.note,(i.people||[]).join(', '),
+    (i.subs||[]).map(s=>(s.done?'[x] ':'[ ] ')+s.t).join('\n'),commentsOf(i.id).map(c=>`${c.authorName||c.authorEmail} (${fmt(c.ts)}): ${c.text}`).join('\n')]);
+  const csv='﻿'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='UNI_Mixed-Use_საკითხები.csv';document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+
+/* ---------- boot ---------- */
+if(!firebaseConfig||!firebaseConfig.apiKey||firebaseConfig.apiKey.startsWith('PASTE')){gate('config')}
+else{
+  const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);
+  onAuthStateChanged(auth,u=>{stopListeners();S.user=u;if(!u){gate('signin');return}gate('loading');startListeners()});
+}
+</script>
+</body>
+</html>
