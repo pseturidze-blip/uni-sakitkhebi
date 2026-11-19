@@ -129,6 +129,14 @@ Two tabs under the title: **issues** (default) and the **materials catalog**.
 - **Board (დაფა):** drag a card to another column to change its status. On a phone, press and hold the card for a moment, then drag it (or open the card and tap the status).
 - Every save shows a short message at the bottom. A **red** message means it was not saved, with the reason in brackets.
 
+### Who did what
+- An opened issue shows **დაამატა** (who created it, when) and **ბოლოს შეცვალა** (last change) under the title. Issues created before this feature show "—"; nothing is guessed.
+- **ისტორია** (collapsed, at the bottom of an issue): status, priority, people, sub-points, text edits, options, material links and comments — who and when, newest first.
+- Tap or hover a sub-point to see who added it and who ticked it.
+- Options, catalog elements and variants show who added them, who changed them last, and who chose them.
+- The **დაამატა** filter in the toolbar shows issues by creator ("—" = unknown).
+- Author fields are set by the database rules from the signed-in account; nobody can type or change them. History entries cannot be edited.
+
 ### Options inside an issue (ვარიანტები)
 - In an opened issue: **+ ვარიანტი** adds an option (e.g. a lift model or a lobby design) with type, note, supplier, price, images and links.
 - State: under discussion / chosen / rejected. Only one option per issue can be chosen; the app records who chose it and when.
@@ -171,4 +179,4 @@ Two tabs under the title: **issues** (default) and the **materials catalog**.
 - **Backups:** use the CSV button from time to time, or set up a scheduled export in Google Cloud (optional).
 - **Costs:** a team of this size stays well inside the free plan (50,000 reads and 20,000 writes per day, 1 GiB stored).
 - **How much space is used:** Firebase console → **Firestore Database → Usage**.
-- **Where the data lives (for an administrator):** `issues`, `comments`, `meta` (issue numbers), `options` + `choices` (options inside issues), `catCategories`, `catElements`, `catVariants` + `catChoices` (catalog), `images` + `thumbs` (pictures), `config/editors` (who may edit).
+- **Where the data lives (for an administrator):** `issues`, `comments`, `meta` (issue numbers), `options` + `choices` (options inside issues), `catCategories`, `catElements`, `catVariants` + `catChoices` (catalog), `images` + `thumbs` (pictures), `history` (activity log), `profiles` (display names), `accessRequests` (refused sign-ins), `config/editors` (who may edit).

@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// UNI Mixed-Use — საკითხები   ·   rules version v3 (see /_rules below)
+// UNI Mixed-Use — საკითხები   ·   rules version v4 (see /_rules below)
 // Only signed-in users whose (lower-case) e-mail is listed in config/editors.emails
 // can read or change anything. Everyone else is refused by the database itself.
 // The owner (OWNER_EMAIL below) can also manage the editor list from the app.
@@ -46,6 +46,14 @@ service cloud.firestore {
         && d.updatedAt == request.time;
     }
 
+    // ---- authorship: author fields come from the signed-in account and never change ----
+    function authorOk(d) {
+      return d.createdBy == request.auth.token.email && d.createdAt == request.time;
+    }
+    function authorKept() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdAt']);
+    }
+
     // Allow-list: config/editors.emails. Read and changed only by the owner
     // (in the app: account menu → editors, or in the Firebase console).
     match /config/{doc} {
@@ -73,10 +81,10 @@ service cloud.firestore {
         && request.resource.data.at == request.time;
     }
 
-    // Version check: the app reads /_rules/v3 (the document does not exist).
+    // Version check: the app reads /_rules/v4 (the document does not exist).
     // If that read is refused, the published rules are older than this file.
     match /_rules/{v} {
-      allow get: if request.auth != null && v == 'v3';
+      allow get: if request.auth != null && v == 'v4';
     }
 
     // Diagnostics for the no-access screen (the documents do not exist; only the answer matters):
@@ -99,8 +107,39 @@ service cloud.firestore {
 
     match /issues/{id} {
       allow read: if isEditor();
-      allow create, update: if isEditor() && validIssue();
+      allow create: if isEditor() && validIssue() && authorOk(request.resource.data);
+      allow update: if isEditor() && validIssue() && authorKept();
       allow delete: if isEditor();
+    }
+
+    // Activity history of an issue: written together with each change, never edited.
+    // Removed only with its issue (or by the owner).
+    match /history/{id} {
+      allow read: if isEditor();
+      allow create: if isEditor()
+        && request.resource.data.keys().hasOnly(['issue', 'type', 'text', 'from', 'to', 'by', 'at'])
+        && request.resource.data.issue is string
+        && existsAfter(/databases/$(database)/documents/issues/$(request.resource.data.issue))
+        && request.resource.data.type is string && request.resource.data.type.size() <= 30
+        && request.resource.data.text is string && request.resource.data.text.size() <= 600
+        && request.resource.data.from is string && request.resource.data.from.size() <= 200
+        && request.resource.data.to is string && request.resource.data.to.size() <= 200
+        && request.resource.data.by == request.auth.token.email
+        && request.resource.data.at == request.time;
+      allow update: if false;
+      allow delete: if isOwner() || (isEditor()
+        && !existsAfter(/databases/$(database)/documents/issues/$(resource.data.issue)));
+    }
+
+    // Display names: each person writes only their own profile (name from their Google account).
+    match /profiles/{uid} {
+      allow read: if isEditor();
+      allow create, update: if signedIn() && uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['email', 'name', 'at'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string && request.resource.data.name.size() <= 200
+        && request.resource.data.at == request.time;
+      allow delete: if false;
     }
 
     match /comments/{id} {
@@ -148,8 +187,9 @@ service cloud.firestore {
     }
     match /options/{id} {
       allow read: if isEditor();
-      allow create, update: if isEditor() && validOption()
-        && (resource == null || request.resource.data.issue == resource.data.issue);
+      allow create: if isEditor() && validOption() && authorOk(request.resource.data);
+      allow update: if isEditor() && validOption() && authorKept()
+        && request.resource.data.issue == resource.data.issue;
       allow delete: if isEditor();
     }
 
@@ -179,6 +219,7 @@ service cloud.firestore {
     match /catElements/{id} {
       allow read: if isEditor();
       allow create, update: if isEditor()
+        && (resource == null ? authorOk(request.resource.data) : authorKept())
         && request.resource.data.keys().hasAll(['category', 'name', 'note', 'issues', 'updatedAt', 'updatedBy'])
         && docExists('catCategories', request.resource.data.category)
         && nameOk(request.resource.data.name)
@@ -203,8 +244,9 @@ service cloud.firestore {
     }
     match /catVariants/{id} {
       allow read: if isEditor();
-      allow create, update: if isEditor() && validVariant()
-        && (resource == null || request.resource.data.element == resource.data.element);
+      allow create: if isEditor() && validVariant() && authorOk(request.resource.data);
+      allow update: if isEditor() && validVariant() && authorKept()
+        && request.resource.data.element == resource.data.element;
       allow delete: if isEditor();
     }
 
