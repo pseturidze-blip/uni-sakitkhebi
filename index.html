@@ -13,6 +13,7 @@
   --accent:#A8281F; --accent-ink:#fff;
   --s-open:#7A8288; --s-discuss:#A86A12; --s-wait:#2C628C; --s-done:#2D7A4B;
   --s-open-bg:#E3E5E2; --s-discuss-bg:#F3E6CF; --s-wait-bg:#D9E6F0; --s-done-bg:#D8EBDD;
+  --p1:#B3261E;--p2:#C45A00;--p3:#1F5F99;--p4:#5D666B;--p-ink:#fff;
   --sans:"Noto Sans Georgian","Sylfaen","Segoe UI",system-ui,sans-serif;
   --serif:"Noto Serif Georgian","Sylfaen",Georgia,serif;
   color-scheme:light;
@@ -22,12 +23,14 @@
   --accent:#E0574B; --accent-ink:#1A0A08;
   --s-open:#A3ABB0; --s-discuss:#E2A44A; --s-wait:#7DB4DC; --s-done:#6CC18E;
   --s-open-bg:#2B3134; --s-discuss-bg:#3A2E1A; --s-wait-bg:#1D3242; --s-done-bg:#1D3426;
+  --p1:#D9473C;--p2:#E07A1F;--p3:#3B82C4;--p4:#7C868C;--p-ink:#fff;
   color-scheme:dark;}}
 :root[data-theme="dark"]{
   --bg:#161A1C; --paper:#1F2427; --ink:#E6E8E5; --muted:#9AA2A6; --line:#343B3F; --soft:#2A3034;
   --accent:#E0574B; --accent-ink:#1A0A08;
   --s-open:#A3ABB0; --s-discuss:#E2A44A; --s-wait:#7DB4DC; --s-done:#6CC18E;
   --s-open-bg:#2B3134; --s-discuss-bg:#3A2E1A; --s-wait-bg:#1D3242; --s-done-bg:#1D3426;
+  --p1:#D9473C;--p2:#E07A1F;--p3:#3B82C4;--p4:#7C868C;--p-ink:#fff;
   color-scheme:dark;}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
@@ -136,6 +139,30 @@ select.f{padding:8px 10px;border:1px solid var(--line);background:var(--paper);b
 .pn{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:11.5px;font-weight:700;color:var(--paper);flex:none}
 .pn.p1{background:var(--accent)}.pn.p2{background:var(--s-discuss)}.pn.p3{background:var(--s-wait)}.pn.p4{background:var(--s-open)}
 .pn.p0{border:1px dashed var(--line);color:var(--muted);font-weight:500}
+/* construction stage (priority) */
+.stg{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:2px 10px 2px 8px;border-radius:20px;font-size:12.5px;font-weight:600;line-height:1.35;color:var(--p-ink);white-space:normal;overflow-wrap:anywhere;width:max-content}
+.stg.s1{background:var(--p1)}.stg.s2{background:var(--p2)}.stg.s3{background:var(--p3)}.stg.s4{background:var(--p4)}
+.stg.s0{background:none;border:1px dashed var(--muted);color:var(--muted);font-weight:500}
+.stg b{font-size:14px;line-height:1}
+.stg.big{font-size:15px;padding:4px 14px 4px 10px}
+.tcell{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.stagebar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.stagebar button{border:0;border-radius:8px;padding:9px 12px;color:var(--p-ink);text-align:left;font-size:13.5px;font-weight:600;line-height:1.35;display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;transition:opacity .15s}
+.stagebar button span{overflow-wrap:anywhere}
+.stagebar button b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.stagebar button[data-sb="1"]{background:var(--p1)}.stagebar button[data-sb="2"]{background:var(--p2)}.stagebar button[data-sb="3"]{background:var(--p3)}.stagebar button[data-sb="4"]{background:var(--p4)}
+.stagebar.filtering button[aria-pressed="false"]{opacity:.45}
+.stagebar button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+.stgsel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stgsel button{border:2px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;text-align:left;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;line-height:1.3;color:var(--ink)}
+.stgsel button b{font-size:18px;line-height:1}
+.stgsel button[data-setpr="1"] b{color:var(--p1)}.stgsel button[data-setpr="2"] b{color:var(--p2)}.stgsel button[data-setpr="3"] b{color:var(--p3)}.stgsel button[data-setpr="4"] b{color:var(--p4)}
+.stgsel button[aria-pressed="true"]{color:var(--p-ink);border-color:transparent}
+.stgsel button[aria-pressed="true"] b{color:var(--p-ink)}
+.stgsel button[data-setpr="1"][aria-pressed="true"]{background:var(--p1)}.stgsel button[data-setpr="2"][aria-pressed="true"]{background:var(--p2)}.stgsel button[data-setpr="3"][aria-pressed="true"]{background:var(--p3)}.stgsel button[data-setpr="4"][aria-pressed="true"]{background:var(--p4)}
+.card .ct{margin-bottom:6px}
+.card .ttl .num{margin-right:6px}
+@media (max-width:700px){.stagebar{grid-template-columns:1fr 1fr}.stgsel button{font-size:13.5px;padding:9px 10px}}
 .empty{margin:40px 0;padding:30px;border:1px dashed var(--line);border-radius:8px;text-align:center;color:var(--muted)}
 .empty p{margin:0 0 12px}
 
@@ -361,6 +388,7 @@ img.missing{visibility:hidden}
   </div>
 
   <div id="tabIssues">
+  <div class="stagebar" id="stagebar" role="group" aria-label="ეტაპები"></div>
   <div class="legend" id="legend"></div>
 
   <div class="bar">
@@ -369,11 +397,11 @@ img.missing{visibility:hidden}
     <div class="filters" id="filters">
       <select class="f" id="fTopic" aria-label="თემა"></select>
       <select class="f" id="fPerson" aria-label="პირი"></select>
-      <select class="f" id="fPrio" aria-label="პრიორიტეტი"></select>
+      <select class="f" id="fPrio" aria-label="ეტაპი"></select>
       <select class="f" id="fBy" aria-label="დაამატა"></select>
     </div>
     <div class="seg" role="group" aria-label="ხედი">
-      <button data-v="topic">თემა</button><button data-v="prio">პრიორიტეტი</button><button data-v="board">დაფა</button>
+      <button data-v="topic">თემა</button><button data-v="prio">ეტაპი</button><button data-v="board">დაფა</button>
     </div>
     <button class="btn ghost" id="expBtn" title="ჩამოტვირთვა (CSV)">CSV</button>
     <button class="btn primary" id="addBtn">+ ახალი</button>
@@ -717,6 +745,8 @@ const byN=(a,b)=>(a.n||0)-(b.n||0);
 const cur=()=>S.issues.get(S.open);
 let tt;function toast(m,kind,ms){const t=$('#toast');t.textContent=m;t.classList.toggle('err',kind==='err');t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),ms||(kind==='err'?6000:3000))}
 function fmt(ts){const v=tms(ts);if(!v)return '';const d=new Date(v);return d.toLocaleDateString('ka-GE',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit'})}
+const CIRC={1:'①',2:'②',3:'③',4:'④'};
+const stgPill=(p,big)=>p?`<span class="stg s${p}${big?' big':''}"><b>${CIRC[p]}</b>${PRF[p]}</span>`:`<span class="stg s0${big?' big':''}">ეტაპი არ არის</span>`;
 const badge=p=>p?`<b class="pn p${p}" title="${p} · ${PRF[p]}">${p}</b>`:`<b class="pn p0" title="პრიორიტეტი —">–</b>`;
 const sdotc=k=>`<span class="sdot" style="background:var(--s-${k})"></span>`;
 const sdot=k=>`<span class="sdot" role="img" style="background:var(--s-${k})" title="${STL[k]||''}" aria-label="${STL[k]||''}"></span>`;
@@ -734,7 +764,10 @@ function render(){
   const tps=topicsList(),pps=peopleList(),pc=p=>items.filter(i=>(i.priority||0)===p).length;
   $('#fTopic').innerHTML=`<option value="">თემა</option>`+tps.map(t=>`<option ${t===S.topic?'selected':''}>${esc(t)}</option>`).join('');
   $('#fPerson').innerHTML=`<option value="">პირი</option>`+pps.map(t=>`<option ${t===S.person?'selected':''}>${esc(t)}</option>`).join('');
-  $('#fPrio').innerHTML=`<option value="">პრიორიტეტი</option>`+PR.map(([p,l])=>`<option value="${p}" ${String(p)===S.prio?'selected':''}>${p} · ${l} (${pc(p)})</option>`).join('')+`<option value="0" ${S.prio==='0'?'selected':''}>— (${pc(0)})</option>`;
+  const openN=p=>items.filter(i=>i.status!=='done'&&(i.priority||0)===p).length;
+  const sb=$('#stagebar');sb.classList.toggle('filtering',!!S.prio);
+  sb.innerHTML=PR.map(([p])=>`<button data-sb="${p}" aria-pressed="${S.prio===String(p)}" title="ღია საკითხები (გადაწყვეტილის გარეშე)"><span>${CIRC[p]} ${PRF[p]}</span><b>${openN(p)}</b></button>`).join('');
+  $('#fPrio').innerHTML=`<option value="">ეტაპი</option>`+PR.map(([p,l])=>`<option value="${p}" ${String(p)===S.prio?'selected':''}>${CIRC[p]} ${PRF[p]} (${pc(p)})</option>`).join('')+`<option value="0" ${S.prio==='0'?'selected':''}>ეტაპი არ არის (${pc(0)})</option>`;
   $('#dlTopics').innerHTML=tps.map(t=>`<option value="${esc(t)}">`).join('');
   $('#dlPeople').innerHTML=pps.map(t=>`<option value="${esc(t)}">`).join('');
   const cr=new Map();let noCr=0;items.forEach(i=>{const em=!i.imported&&i.createdBy?String(i.createdBy).toLowerCase():'';if(em)cr.set(em,(cr.get(em)||0)+1);else noCr++});
@@ -748,8 +781,8 @@ function render(){
   else if(!vis.length)V.innerHTML=`<div class="empty">ვერაფერი მოიძებნა.</div>`;
   else if(S.view==='prio'){
     const act=vis.filter(i=>i.status!=='done');
-    V.innerHTML=[...PR,[0,'პრიორიტეტის გარეშე']].map(([p,l])=>{const rs=act.filter(i=>(i.priority||0)===p).sort(byN);if(!rs.length)return '';
-      return `<section class="topic"><h2>${p?badge(p)+`${p} · ${esc(l)}`:esc(l)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('')+doneSecHTML(vis,tps);
+    V.innerHTML=[...PR,[0,'']].map(([p,l])=>{const rs=act.filter(i=>(i.priority||0)===p).sort(byN);if(!rs.length)return '';
+      return `<section class="topic"><h2>${stgPill(p,true)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('')+doneSecHTML(vis,tps);
   }else if(S.view==='topic'){
     V.innerHTML=topicGroups(vis.filter(i=>i.status!=='done'),tps)+doneSecHTML(vis,tps);
   }else{
@@ -772,8 +805,8 @@ function subsLines(i){const ss=i.subs||[];if(!S.showSubs||!ss.length)return '';
   return `<div class="rsubs">${op.map(x=>`<div class="rs">${esc(x.t)}</div>`).join('')}${dn.length?`<div class="rsl">გადაწყვეტილი</div>${shown.map(x=>`<div class="rs dn"><span>${esc(x.t)}</span></div>`).join('')}${more?`<button class="rmore" data-moredone="${i.id}">+${more} გადაწყვეტილი</button>`:exp&&dn.length>3?`<button class="rmore" data-moredone="${i.id}">▴</button>`:''}`:''}</div>`}
 const ocHTML=i=>{const n=optsOf(i.id).length;return n?`<span class="oc${S.choices.has(i.id)?' ok':''}">${n} ვარიანტი</span>`:''};
 const creator=i=>!i.imported&&i.createdBy?i.createdBy:'';
-const rowHTML=i=>`<div class="row" role="button" tabindex="0" data-open="${i.id}" title="${creator(i)?esc('დაამატა: '+nameOf(i.createdBy)+(tms(i.createdAt)?' · '+fmt(i.createdAt):'')):''}"><span class="num">${i.n||''}</span><span class="ttl">${esc(i.title)}</span><span class="meta">${creator(i)?`<span class="byl">${esc(nameOf(i.createdBy))}</span>`:''}${ocHTML(i)}${chips(i.people)}${badge(i.priority)}${sdot(i.status)}</span>${subsLines(i)}</div>`;
-const cardHTML=i=>`<div class="card" role="button" tabindex="0" draggable="true" data-open="${i.id}"><div class="ct"><span class="num">${i.n||''}</span>${badge(i.priority)}</div><div class="ttl">${esc(i.title)}</div>${chips(i.people)}${ocHTML(i)}</div>`;
+const rowHTML=i=>`<div class="row" role="button" tabindex="0" data-open="${i.id}" title="${creator(i)?esc('დაამატა: '+nameOf(i.createdBy)+(tms(i.createdAt)?' · '+fmt(i.createdAt):'')):''}"><span class="num">${i.n||''}</span><span class="tcell"><span class="ttl">${esc(i.title)}</span>${stgPill(i.priority)}</span><span class="meta">${creator(i)?`<span class="byl">${esc(nameOf(i.createdBy))}</span>`:''}${ocHTML(i)}${chips(i.people)}${sdot(i.status)}</span>${subsLines(i)}</div>`;
+const cardHTML=i=>`<div class="card" role="button" tabindex="0" draggable="true" data-open="${i.id}"><div class="ct">${stgPill(i.priority)}</div><div class="ttl"><span class="num">${i.n||''}</span>${esc(i.title)}</div>${chips(i.people)}${ocHTML(i)}</div>`;
 
 /* ---------- drawer ---------- */
 function viewHTML(i){
@@ -783,10 +816,10 @@ function viewHTML(i){
   <div class="db">
     <div class="vhead"><div><div class="vtitle">${esc(i.title)}</div><div class="vtopic">${esc(i.topic)}</div>
       <div class="vby">${creator(i)?byLine('დაამატა',i.createdBy,i.createdAt):'დაამატა: —'}<br>${byLine('ბოლოს შეცვალა',i.updatedBy,i.updatedAt)}</div></div><button class="btn sm" id="startEdit">რედაქტირება</button></div>
+    <div class="field"><span class="flabel">ეტაპი</span><div class="stgsel">${PR.map(([p])=>`<button data-setpr="${p}" aria-pressed="${i.priority===p}"><b>${CIRC[p]}</b>${PRF[p]}</button>`).join('')}</div></div>
     ${i.desc?`<p class="vtext">${esc(i.desc)}</p>`:''}
     ${i.note?`<div class="notebox"><span class="flabel">შენიშვნა</span><div class="vtext">${esc(i.note)}</div></div>`:''}
     <div class="field"><span class="flabel">სტატუსი</span><div class="opts">${ST.map(([k,l])=>`<button data-setst="${k}" aria-pressed="${i.status===k}" style="--c:var(--s-${k});--cb:var(--s-${k}-bg)">${sdot(k)}${l}</button>`).join('')}</div></div>
-    <div class="field"><span class="flabel">პრიორიტეტი</span><div class="opts">${PR.map(([p,l])=>`<button data-setpr="${p}" aria-pressed="${i.priority===p}" title="${PRF[p]}">${badge(p)}${l}</button>`).join('')}</div></div>
     <div class="field"><span class="flabel">პირები</span><div class="people">${(i.people||[]).map((p,ix)=>`<span class="chip">${esc(p)}<button data-rmp="${ix}" aria-label="${esc(p)} — წაშლა">×</button></span>`).join('')}<input id="newPerson" class="inl" list="dlPeople" placeholder="+ პირი" aria-label="პირის დამატება"></div></div>
     <div class="sec">${long?`<button class="subt" id="subToggle" aria-expanded="${S.subsOpen}">${subs.length} ქვეპუნქტი <span>· ${sd} შესრულებული ${S.subsOpen?'▴':'▾'}</span></button>`:`<h4>ქვეპუნქტები${subs.length?` <small>${sd}/${subs.length}</small>`:''}</h4>`}
       ${showSubs?`<ul class="sublist">${subs.map((s,ix)=>`<li class="${s.done?'done':''}"><input type="checkbox" data-subchk="${ix}" ${s.done?'checked':''} aria-label="შესრულებულია"><button class="stx" data-subinfo="${ix}" title="${esc(subInfoText(s))}"><span class="stt">${esc(s.t)}</span>${S.subInfo.has(ix)?`<span class="sinfo">${esc(subInfoText(s)||'—')}</span>`:''}</button><button class="rm" data-rmsub="${ix}" aria-label="ქვეპუნქტის წაშლა">×</button></li>`).join('')}</ul><input id="newSub" class="inl wide" placeholder="+ ქვეპუნქტი" aria-label="ქვეპუნქტის დამატება">`:''}</div>
@@ -803,7 +836,7 @@ const FL={title:'სათაური',topic:'თემა',desc:'აღწე�
 function histText(h){const t=h.text||'';switch(h.type){
   case 'created':return 'დაამატა საკითხი';
   case 'status':return `სტატუსი: ${STL[h.from]||h.from||'—'} → ${STL[h.to]||h.to||'—'}`;
-  case 'priority':return `პრიორიტეტი: ${h.from||'—'} → ${h.to||'—'}`;
+  case 'priority':{const n=v=>v&&PRF[v]?CIRC[v]+' '+PRF[v]:'—';return `ეტაპი: ${n(h.from)} → ${n(h.to)}`}
   case 'edit':return 'შეცვალა: '+t.split(',').map(k=>FL[k]||k).join(', ');
   case 'person_add':return 'პირი დაემატა: '+t;case 'person_rm':return 'პირი წაიშალა: '+t;
   case 'sub_add':return 'ქვეპუნქტი დაემატა: '+t;case 'sub_done':return '✓ შესრულდა: '+t;case 'sub_undone':return 'გაიხსნა: '+t;case 'sub_rm':return 'ქვეპუნქტი წაიშალა: '+t;
@@ -1242,6 +1275,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.rmreq&&A.on){deleteDoc(doc(db,'accessRequests',t.dataset.rmreq)).then(()=>toast('მოთხოვნა წაიშალა'),writeErr);return}
   if(t.dataset.subinfo!==undefined){const k=+t.dataset.subinfo;S.subInfo.has(k)?S.subInfo.delete(k):S.subInfo.add(k);renderDrawer(false);return}
   if(t.dataset.rmlink!==undefined){t.closest('.lrow').remove();return}
+  if(t.dataset.sb){S.prio=S.prio===t.dataset.sb?'':t.dataset.sb;render();return}
   if(t.dataset.st!==undefined){S.status=S.status===t.dataset.st?'':t.dataset.st;render();return}
   if(t.dataset.v){S.view=t.dataset.v;render();return}
   if(t.dataset.setst){savePatch({status:t.dataset.setst});return}
@@ -1377,8 +1411,8 @@ document.addEventListener('contextmenu',e=>{if(tp&&e.target.closest?.('.card'))e
 
 /* CSV export (UTF-8 with BOM for Excel) */
 function exportCsv(){
-  const head=['№','თემა','საკითხი','აღწერა','პრიორიტეტი','სტატუსი','შენიშვნა','პირები','ქვეპუნქტები','კომენტარები','დაამატა','დამატების დრო','ბოლოს შეცვალა','ცვლილების დრო'];
-  const rows=topicsList().flatMap(t=>all().filter(i=>(i.topic||'სხვა')===t).sort(byN)).map(i=>[i.n,i.topic,i.title,i.desc,i.priority?i.priority+'. '+PRF[i.priority]:'',STL[i.status],i.note,(i.people||[]).join(', '),
+  const head=['№','თემა','საკითხი','აღწერა','ეტაპი','სტატუსი','შენიშვნა','პირები','ქვეპუნქტები','კომენტარები','დაამატა','დამატების დრო','ბოლოს შეცვალა','ცვლილების დრო'];
+  const rows=topicsList().flatMap(t=>all().filter(i=>(i.topic||'სხვა')===t).sort(byN)).map(i=>[i.n,i.topic,i.title,i.desc,i.priority?i.priority+'. '+PRF[i.priority]:'ეტაპი არ არის',STL[i.status],i.note,(i.people||[]).join(', '),
     (i.subs||[]).map(s=>(s.done?'[x] ':'[ ] ')+s.t).join('\n'),commentsOf(i.id).map(c=>`${c.authorName||c.authorEmail} (${fmt(c.ts)}): ${c.text}`).join('\n'),
     creator(i)?nameOf(i.createdBy):'',creator(i)?fmt(i.createdAt):'',i.updatedBy?nameOf(i.updatedBy):'',fmt(i.updatedAt)]);
   csvDownload('UNI_Mixed-Use_საკითხები.csv',head,rows);
