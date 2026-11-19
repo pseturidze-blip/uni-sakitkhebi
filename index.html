@@ -161,6 +161,7 @@ input.inl.wide{width:100%;border-radius:6px;padding:7px 10px;margin-top:8px}
 .foot{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:14px;margin-top:22px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
+.toast.err{background:#B3261E;color:#fff}
 
 @media (max-width:700px){
   .wrap{padding:16px 16px 80px}
@@ -279,7 +280,10 @@ async function doSignIn(){
 /* ---------- data ---------- */
 function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];$("#banner").textContent="";S.issues=new Map();S.comments=[];S.loaded=false}
 function startListeners(){
-  unsubs.push(onSnapshot(collection(db,'issues'),snap=>{
+  let offT=null;
+  unsubs.push(onSnapshot(collection(db,'issues'),{includeMetadataChanges:true},snap=>{
+    if(snap.metadata.fromCache){if(!offT)offT=setTimeout(()=>{$('#banner').textContent='სერვერთან კავშირი არ არის. შეამოწმეთ ინტერნეტი ან გადატვირთეთ გვერდი.'},10000)}
+    else{clearTimeout(offT);offT=null;if(/^სერვერთან/.test($('#banner').textContent))$('#banner').textContent=''}
     const m=new Map();snap.docs.forEach(d=>m.set(d.id,{...d.data({serverTimestamps:'estimate'}),id:d.id}));
     S.issues=m;if(!S.loaded){S.loaded=true;showApp()}render();
   },err=>{S.loaded=false;gate(err.code==='permission-denied'?'denied':'error',err.code)}));
@@ -288,12 +292,22 @@ function startListeners(){
   },err=>{console.error(err);$('#banner').textContent=`კომენტარები ვერ ჩაიტვირთა (${err.code||'error'}). გადატვირთეთ გვერდი.`}));
 }
 const stamp=()=>({updatedAt:serverTimestamp(),updatedBy:S.user.email});
-function writeErr(e){
-  if(e&&e.code==='permission-denied')toast('შენახვის უფლება არ გაქვთ.');
-  else toast('ვერ შეინახა. სცადეთ თავიდან.');
-  console.error(e);
-}
-function save(id,patch){return updateDoc(doc(db,'issues',id),{...patch,...stamp()}).catch(writeErr)}
+const ERR={'permission-denied':'წვდომა აკრძალულია','unavailable':'სერვერთან კავშირი არ არის','deadline-exceeded':'სერვერი არ პასუხობს','not-found':'ჩანაწერი ვერ მოიძებნა','resource-exhausted':'უფასო ლიმიტი ამოიწურა','failed-precondition':'სერვერის პირობა არ დაკმაყოფილდა'};
+const errText=e=>{const c=e&&e.code?String(e.code).replace(/^firestore\//,''):'';return (ERR[c]?ERR[c]+' ':'')+'('+(c||(e&&e.message)||'error')+')'};
+function writeErr(e){toast('ვერ შეინახა: '+errText(e),'err');console.error(e)}
+/* disable a button and show "sending…" while a save runs */
+const BUSY=new Set();
+function markBusy(){BUSY.forEach(id=>{const b=document.getElementById(id);if(b&&b.dataset.t===undefined){b.dataset.t=b.textContent;b.disabled=true;b.textContent='იგზავნება…'}})}
+async function busy(id,fn){if(BUSY.has(id))return;BUSY.add(id);markBusy();
+  try{return await fn()}finally{BUSY.delete(id);const b=document.getElementById(id);if(b&&b.dataset.t!==undefined){b.disabled=false;b.textContent=b.dataset.t;delete b.dataset.t}}}
+/* a save the server confirmed must show up in the live list; if not, the live connection is stuck */
+function expectSeen(coll,id){setTimeout(()=>{const ok=coll==='issues'?S.issues.has(id):S.comments.some(c=>c.id===id);
+  if(!ok&&S.loaded)$('#banner').textContent='ცვლილება შენახულია, მაგრამ სია არ განახლდა. გადატვირთეთ გვერდი (Ctrl+F5).'},8000)}
+/* shows the change at once; reverts it on screen if the server refuses */
+function save(id,patch,ok='შენახულია'){
+  const i=S.issues.get(id),prev={};if(i){Object.keys(patch).forEach(k=>prev[k]=i[k]);Object.assign(i,patch)}
+  return updateDoc(doc(db,'issues',id),{...patch,...stamp()}).then(()=>{if(ok)toast(ok)},e=>{
+    const j=S.issues.get(id);if(j)Object.keys(prev).forEach(k=>{if(j[k]===patch[k])j[k]=prev[k]});render();writeErr(e)})}
 async function createIssue(data){
   const ref=doc(collection(db,'issues')),cref=doc(db,'meta','counter');
   const localMax=Math.max(0,...all().map(i=>i.n||0));
@@ -310,10 +324,9 @@ async function removeIssue(id){
   await b.commit();
 }
 function addComment(){
-  const inp=$('#newCm');const text=(inp.value||'').trim();if(!text)return;const u=S.user;
-  inp.value='';
-  addDoc(collection(db,'comments'),{issue:S.open,text,authorUid:u.uid,authorEmail:u.email,authorName:u.displayName||u.email,ts:serverTimestamp()})
-    .catch(e=>{inp.value=text;writeErr(e)});
+  const inp=$('#newCm');const text=(inp.value||'').trim();if(!text)return;const u=S.user,issue=S.open;
+  busy('addCm',()=>addDoc(collection(db,'comments'),{issue,text,authorUid:u.uid,authorEmail:u.email,authorName:u.displayName||u.email,ts:serverTimestamp()})
+    .then(ref=>{const el=$('#newCm');if(el&&S.open===issue&&el.value.trim()===text)el.value='';toast('კომენტარი გაიგზავნა');expectSeen('comments',ref.id)},writeErr));
 }
 
 /* position + summary → note (only when both exist the summary keeps its label) */
@@ -360,7 +373,7 @@ function matches(i){
   return true}
 const byN=(a,b)=>(a.n||0)-(b.n||0);
 const cur=()=>S.issues.get(S.open);
-let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)}
+let tt;function toast(m,kind,ms){const t=$('#toast');t.textContent=m;t.classList.toggle('err',kind==='err');t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),ms||(kind==='err'?6000:3000))}
 function fmt(ts){const v=tms(ts);if(!v)return '';const d=new Date(v);return d.toLocaleDateString('ka-GE',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit'})}
 const badge=p=>p?`<b class="pn p${p}" title="${p} · ${PRF[p]}">${p}</b>`:`<b class="pn p0" title="პრიორიტეტი —">–</b>`;
 const sdot=k=>`<span class="sdot" role="img" style="background:var(--s-${k})" title="${STL[k]||''}" aria-label="${STL[k]||''}"></span>`;
@@ -444,6 +457,7 @@ function renderDrawer(force){
     const b=D.querySelector('.db');if(b)b.scrollTop=sc;
     if(fid){const el=document.getElementById(fid);if(el)el.focus()}
   }
+  markBusy();
 }
 function showDrawer(){const D=$('#drawer');D.classList.add('on');$('#scrim').classList.add('on');D.setAttribute('aria-hidden','false')}
 function openIssue(id){S.open=id;S.edit=false;S.subsOpen=false;renderDrawer(true);showDrawer();setTimeout(()=>$('#drawer .x')?.focus(),50)}
@@ -453,15 +467,15 @@ function closeIssue(force){
   S.open=null;S.edit=false;S.pending=null;const D=$('#drawer');D.classList.remove('on');$('#scrim').classList.remove('on');D.setAttribute('aria-hidden','true')}
 function editValues(){const o={};document.querySelectorAll('#drawer [data-k]').forEach(el=>o[el.dataset.k]=el.value.trim());return o}
 function isDirty(){const v=editValues(),i=S.open==='__new__'?{topic:S.newTopic}:cur();if(!i)return false;return Object.keys(v).some(k=>(i[k]||'')!==v[k])}
-function savePatch(patch){const i=cur();if(!i)return;Object.assign(i,patch);save(i.id,patch);render()}
+function savePatch(patch){const i=cur();if(!i)return;save(i.id,patch);render()}
 async function saveEdit(){
   const v=editValues();if(!v.title){toast('სათაური ცარიელია.');$('#e_title').focus();return}
   if(!v.topic)v.topic='სხვა';
   if(S.open==='__new__'){
-    const btn=$('#saveEdit');btn.disabled=true;
-    try{const id=await createIssue({...v,status:'open',priority:null,people:[],subs:[],orig:''});
-      S.pending=id;S.open=id;S.edit=false;S.subsOpen=false;renderDrawer(true)}
-    catch(e){btn.disabled=false;writeErr(e)}
+    await busy('saveEdit',async()=>{
+      try{const id=await createIssue({...v,status:'open',priority:null,people:[],subs:[],orig:''});
+        S.pending=id;S.open=id;S.edit=false;S.subsOpen=false;renderDrawer(true);toast('საკითხი დაემატა');expectSeen('issues',id)}
+      catch(e){writeErr(e)}});
     return}
   const i=cur();if(!i)return;const patch={};Object.keys(v).forEach(k=>{if((i[k]||'')!==v[k])patch[k]=v[k]});
   S.edit=false;if(Object.keys(patch).length)savePatch(patch);renderDrawer(true)}
@@ -483,7 +497,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.setpr){const p=+t.dataset.setpr;savePatch({priority:cur()?.priority===p?null:p});return}
   if(t.dataset.rmp!==undefined){const p=[...(cur().people||[])];p.splice(+t.dataset.rmp,1);savePatch({people:p});return}
   if(t.dataset.rmsub!==undefined){if(!confirm('წავშალოთ ქვეპუნქტი?'))return;const s=(cur().subs||[]).map(x=>({...x}));s.splice(+t.dataset.rmsub,1);savePatch({subs:s});return}
-  if(t.dataset.rmc){if(confirm('წავშალოთ კომენტარი?'))deleteDoc(doc(db,'comments',t.dataset.rmc)).catch(writeErr);return}
+  if(t.dataset.rmc){if(confirm('წავშალოთ კომენტარი?'))deleteDoc(doc(db,'comments',t.dataset.rmc)).then(()=>toast('კომენტარი წაიშალა'),writeErr);return}
   if(t.classList.contains('x')){closeIssue();return}
   switch(t.id){
     case 'signIn':doSignIn();break;
@@ -529,7 +543,7 @@ document.addEventListener('dragstart',e=>{const c=e.target.closest?.('.card');if
 document.addEventListener('dragover',e=>{const col=e.target.closest?.('.col');if(col&&dragId){e.preventDefault();col.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const col=e.target.closest?.('.col');if(col)col.classList.remove('over')});
 document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.col.over').forEach(c=>c.classList.remove('over'))});
-function moveTo(id,st){const i=S.issues.get(id);if(i&&st&&i.status!==st){i.status=st;save(i.id,{status:st});render()}}
+function moveTo(id,st){const i=S.issues.get(id);if(i&&st&&i.status!==st){save(i.id,{status:st});render()}}
 const clearOver=keep=>document.querySelectorAll('.col.over').forEach(c=>c!==keep&&c.classList.remove('over'));
 document.addEventListener('drop',e=>{const col=e.target.closest?.('.col');if(col&&dragId){e.preventDefault();col.classList.remove('over');moveTo(dragId,col.dataset.col);dragId=null}});
 
