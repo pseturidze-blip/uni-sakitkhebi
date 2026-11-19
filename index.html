@@ -274,15 +274,15 @@ async function doSignIn(){
 }
 
 /* ---------- data ---------- */
-function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];S.issues=new Map();S.comments=[];S.loaded=false}
+function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];$("#banner").textContent="";S.issues=new Map();S.comments=[];S.loaded=false}
 function startListeners(){
   unsubs.push(onSnapshot(collection(db,'issues'),snap=>{
     const m=new Map();snap.docs.forEach(d=>m.set(d.id,{...d.data({serverTimestamps:'estimate'}),id:d.id}));
     S.issues=m;if(!S.loaded){S.loaded=true;showApp()}render();
   },err=>{S.loaded=false;gate(err.code==='permission-denied'?'denied':'error',err.code)}));
   unsubs.push(onSnapshot(collection(db,'comments'),snap=>{
-    S.comments=snap.docs.map(d=>({...d.data({serverTimestamps:'estimate'}),id:d.id}));if(S.loaded)render();
-  },()=>{}));
+    S.comments=snap.docs.map(d=>({...d.data({serverTimestamps:'estimate'}),id:d.id}));$('#banner').textContent='';if(S.loaded)render();
+  },err=>{console.error(err);$('#banner').textContent=`კომენტარები ვერ ჩაიტვირთა (${err.code||'error'}). გადატვირთეთ გვერდი.`}));
 }
 const stamp=()=>({updatedAt:serverTimestamp(),updatedBy:S.user.email});
 function writeErr(e){
