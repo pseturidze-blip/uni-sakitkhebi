@@ -84,6 +84,20 @@ select.f{padding:8px 10px;border:1px solid var(--line);background:var(--paper);b
 .rows{background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);cursor:pointer}
 .row:first-child{border-top:0}
+.rsubs{grid-column:2/-1;display:flex;flex-direction:column;gap:1px;min-width:0;margin-top:1px}
+.rs{font-size:12.5px;line-height:1.45;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:14px;position:relative}
+.rs::before{content:'–';position:absolute;left:2px}
+.rs.dn::before{content:'✓';color:var(--s-done);left:0}
+.rs.dn span{text-decoration:line-through;opacity:.7}
+.rsl{font-size:11px;font-weight:600;color:var(--muted);margin-top:4px;padding-left:14px}
+.rmore{align-self:flex-start;border:0;background:none;padding:1px 0 1px 14px;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.lopts{display:flex;justify-content:flex-end;margin-top:12px;font-size:13px;color:var(--muted)}
+.lopts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.lopts input{accent-color:var(--accent)}
+.donesec{margin-top:34px;border-top:1px solid var(--line);padding-top:14px}
+.dsh{border:0;background:none;padding:2px 0;font:700 17px/1.3 var(--serif);color:var(--muted);display:flex;gap:8px;align-items:center}
+.donesec .topic{margin-top:16px}
+.donesec .topic h2{font-size:16px;color:var(--muted)}
 .row:hover{background:var(--soft)}
 .num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13.5px}
 .ttl{font-weight:600}
@@ -253,6 +267,7 @@ input.inl.wide{width:100%;border-radius:6px;padding:7px 10px;margin-top:8px}
     <button class="btn primary" id="addBtn">+ ახალი</button>
   </div>
 
+  <div class="lopts" id="lopts"></div>
   <main id="view"></main>
   </div>
 </div>
@@ -281,8 +296,9 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tms=v=>v&&typeof v.toMillis==='function'?v.toMillis():(typeof v==='number'?v:0);
 
-let savedTab='issues';try{savedTab=localStorage.getItem('uni-tab')==='cat'?'cat':'issues'}catch(e){}
-const S={issues:new Map(),comments:[],options:[],choices:new Map(),tab:savedTab,opt:null,optEdit:false,errs:{},view:'topic',q:'',topic:'',person:'',prio:'',status:'',open:null,edit:false,subsOpen:false,newTopic:'',pending:null,loaded:false,user:null};
+let savedTab='issues',savedSubs=true;try{savedSubs=localStorage.getItem('uni-subs')!=='0'}catch(e){}
+savedTab='issues';try{savedTab=localStorage.getItem('uni-tab')==='cat'?'cat':'issues'}catch(e){}
+const S={issues:new Map(),comments:[],options:[],choices:new Map(),tab:savedTab,showSubs:savedSubs,doneOpen:new Set(),doneSec:false,opt:null,optEdit:false,errs:{},view:'topic',q:'',topic:'',person:'',prio:'',status:'',open:null,edit:false,subsOpen:false,newTopic:'',pending:null,loaded:false,user:null};
 let auth,db,unsubs=[];
 
 /* ---------- theme ---------- */
@@ -491,22 +507,33 @@ function render(){
   document.querySelectorAll('.seg [data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.view));
 
   const V=$('#view'),vis=items.filter(matches);
+  $('#lopts').innerHTML=S.view!=='board'&&vis.length?`<label><input type="checkbox" id="showSubs" ${S.showSubs?'checked':''}> ქვეპუნქტების ჩვენება</label>`:'';
   if(!items.length)V.innerHTML=`<div class="empty"><p>საკითხები ჯერ არ არის.</p><button class="btn" id="importBtn">იმპორტი (JSON)</button></div>`;
   else if(!vis.length)V.innerHTML=`<div class="empty">ვერაფერი მოიძებნა.</div>`;
   else if(S.view==='prio'){
-    V.innerHTML=[...PR,[0,'პრიორიტეტის გარეშე']].map(([p,l])=>{const rs=vis.filter(i=>(i.priority||0)===p).sort(byN);if(!rs.length)return '';
-      return `<section class="topic"><h2>${p?badge(p)+`${p} · ${esc(l)}`:esc(l)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('');
+    const act=vis.filter(i=>i.status!=='done');
+    V.innerHTML=[...PR,[0,'პრიორიტეტის გარეშე']].map(([p,l])=>{const rs=act.filter(i=>(i.priority||0)===p).sort(byN);if(!rs.length)return '';
+      return `<section class="topic"><h2>${p?badge(p)+`${p} · ${esc(l)}`:esc(l)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('')+doneSecHTML(vis,tps);
   }else if(S.view==='topic'){
-    V.innerHTML=tps.map(t=>{const rs=vis.filter(i=>(i.topic||'სხვა')===t).sort(byN);if(!rs.length)return '';
-      return `<section class="topic"><h2>${esc(t)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('');
+    V.innerHTML=topicGroups(vis.filter(i=>i.status!=='done'),tps)+doneSecHTML(vis,tps);
   }else{
     V.innerHTML=`<div class="board">${ST.map(([k,l])=>{const cs=vis.filter(i=>i.status===k).sort((a,b)=>((a.priority||9)-(b.priority||9))||byN(a,b));
       return `<div class="col" data-col="${k}"><h3>${sdot(k)}${l} <small>${cs.length}</small></h3>${cs.map(cardHTML).join('')}</div>`}).join('')}</div>`;
   }
   renderDrawer(false);
 }
+const topicGroups=(rs0,tps)=>tps.map(t=>{const rs=rs0.filter(i=>(i.topic||'სხვა')===t).sort(byN);if(!rs.length)return '';
+  return `<section class="topic"><h2>${esc(t)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('');
+/* decided issues: own section at the bottom, collapsed by default, grouped by topic */
+function doneSecHTML(vis,tps){const dn=vis.filter(i=>i.status==='done');if(!dn.length)return '';
+  const open=S.doneSec||S.status==='done';
+  return `<section class="donesec"><button class="dsh" id="doneSecBtn" aria-expanded="${open}">${sdot('done')}გადაწყვეტილი საკითხები (${dn.length}) <span aria-hidden="true">${open?'▴':'▾'}</span></button>${open?topicGroups(dn,tps):''}</section>`}
+/* sub-points under a row: open first, then done (greyed, struck); more than 3 done collapse */
+function subsLines(i){const ss=i.subs||[];if(!S.showSubs||!ss.length)return '';
+  const op=ss.filter(x=>!x.done),dn=ss.filter(x=>x.done),exp=S.doneOpen.has(i.id),shown=exp||dn.length<=3?dn:dn.slice(0,3),more=dn.length-shown.length;
+  return `<div class="rsubs">${op.map(x=>`<div class="rs">${esc(x.t)}</div>`).join('')}${dn.length?`<div class="rsl">გადაწყვეტილი</div>${shown.map(x=>`<div class="rs dn"><span>${esc(x.t)}</span></div>`).join('')}${more?`<button class="rmore" data-moredone="${i.id}">+${more} გადაწყვეტილი</button>`:exp&&dn.length>3?`<button class="rmore" data-moredone="${i.id}">▴</button>`:''}`:''}</div>`}
 const ocHTML=i=>{const n=optsOf(i.id).length;return n?`<span class="oc${S.choices.has(i.id)?' ok':''}">${n} ვარიანტი</span>`:''};
-const rowHTML=i=>`<div class="row" role="button" tabindex="0" data-open="${i.id}"><span class="num">${i.n||''}</span><span class="ttl">${esc(i.title)}</span><span class="meta">${ocHTML(i)}${chips(i.people)}${badge(i.priority)}${sdot(i.status)}</span></div>`;
+const rowHTML=i=>`<div class="row" role="button" tabindex="0" data-open="${i.id}"><span class="num">${i.n||''}</span><span class="ttl">${esc(i.title)}</span><span class="meta">${ocHTML(i)}${chips(i.people)}${badge(i.priority)}${sdot(i.status)}</span>${subsLines(i)}</div>`;
 const cardHTML=i=>`<div class="card" role="button" tabindex="0" draggable="true" data-open="${i.id}"><div class="ct"><span class="num">${i.n||''}</span>${badge(i.priority)}</div><div class="ttl">${esc(i.title)}</div>${chips(i.people)}${ocHTML(i)}</div>`;
 
 /* ---------- drawer ---------- */
@@ -634,6 +661,8 @@ function addSub(){const inp=$('#newSub');const v=(inp.value||'').trim();if(!v)re
 document.addEventListener('click',e=>{
   if(!e.target.closest('#meMenu,#meBtn'))$('#meMenu').classList.add('hide');
   const t=e.target.closest('button,[data-open]');if(!t)return;
+  if(t.dataset.moredone){const id=t.dataset.moredone;S.doneOpen.has(id)?S.doneOpen.delete(id):S.doneOpen.add(id);render();return}
+  if(t.id==='doneSecBtn'){S.doneSec=!(S.doneSec||S.status==='done');if(S.status==='done'&&!S.doneSec)S.status='';render();return}
   if(t.dataset.open){openIssue(t.dataset.open);return}
   if(t.dataset.tab){S.tab=t.dataset.tab;try{localStorage.setItem('uni-tab',S.tab)}catch(e){}render();return}
   if(t.dataset.opt){S.opt=t.dataset.opt;S.optEdit=false;renderDrawer(true);$('#drawer .db').scrollTop=0;return}
@@ -686,6 +715,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.dataset?.subchk!==undefined){const s=(cur().subs||[]).map(x=>({...x}));s[+el.dataset.subchk].done=el.checked;savePatch({subs:s})}
+  if(el.id==='showSubs'){S.showSubs=el.checked;try{localStorage.setItem('uni-subs',el.checked?'1':'0')}catch(e){}render()}
   if(el.id==='fTopic'){S.topic=el.value;render()}
   if(el.id==='fPerson'){S.person=el.value;render()}
   if(el.id==='fPrio'){S.prio=el.value;render()}
