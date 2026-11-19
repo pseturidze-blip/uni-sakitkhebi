@@ -358,125 +358,6 @@ img.missing{visibility:hidden}
   .col{scroll-snap-align:start}
   .db{padding:16px 16px 30px}.dh{padding:12px 16px}
 }
-
-/* ===================== document style (overrides above) ===================== */
-:root{--bg:#F7F7F6;--paper:#FFFFFF;--ink:#24292E;--muted:#6B7177;--line:#E1E3E6;--soft:#F0F1F3;
-  --accent:#2E5E8C;--accent-ink:#fff;--serif:var(--sans);--r:4px;--rowpad:7px}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16181B;--paper:#1C1F22;--ink:#E3E5E7;--muted:#9AA0A6;--line:#30343A;--soft:#24272B;--accent:#6FA2D3;--accent-ink:#0E1A26}}
-:root[data-theme="dark"]{--bg:#16181B;--paper:#1C1F22;--ink:#E3E5E7;--muted:#9AA0A6;--line:#30343A;--soft:#24272B;--accent:#6FA2D3;--accent-ink:#0E1A26}
-body{font:14px/1.45 var(--sans);background:var(--paper)}
-body.compact{--rowpad:3px}
-h1,.gcard h1{font:600 20px/1.3 var(--sans);letter-spacing:0}
-.wrap{max-width:none;padding:14px 20px 60px}
-.tabs{margin-top:8px;gap:18px}.tabs button{padding:6px 0;font-size:14px}
-.btn{height:32px;padding:0 12px;border-radius:var(--r);font-size:13.5px;display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1}
-.btn.sm{height:28px;padding:0 10px;font-size:13px}
-.btn.big{height:38px;padding:0 18px;font-size:15px}
-.btn.primary{font-weight:600}
-.icon{width:32px;height:32px;border-radius:var(--r);font-size:15px}
-.search,select.f{height:32px;padding:0 10px;border-radius:var(--r);font-size:13.5px}
-.seg{border-radius:var(--r)}.seg button{height:30px;padding:0 10px;font-size:13.5px}
-.bar{margin:8px -20px 0;padding:8px 20px;gap:6px;background:var(--paper)}
-.legend{margin-top:8px;font-size:13px;gap:2px 14px}
-.lopts{margin-top:8px;gap:14px;align-items:center;font-size:13px}
-.dens button{height:26px;font-size:12.5px;padding:0 8px}
-/* stage: soft tinted pills */
-.stg{border-radius:var(--r);padding:1px 8px 1px 6px;font-size:12.5px;font-weight:600}
-.stg.s1{background:color-mix(in srgb,var(--p1) 13%,var(--paper));color:var(--p1)}
-.stg.s2{background:color-mix(in srgb,var(--p2) 15%,var(--paper));color:var(--p2)}
-.stg.s3{background:color-mix(in srgb,var(--p3) 13%,var(--paper));color:var(--p3)}
-.stg.s4{background:color-mix(in srgb,var(--p4) 15%,var(--paper));color:var(--p4)}
-.stg.s0{border-color:var(--line);font-weight:400}
-.stg.big{font-size:14px;padding:2px 10px 2px 8px}
-.stagebar{margin-top:10px;gap:6px}
-.stagebar button{border-radius:var(--r);padding:6px 10px;font-size:13px;color:var(--ink);background:var(--paper)!important;border:1px solid var(--line);border-left-width:4px}
-.stagebar button b{font-size:16px}
-.stagebar button[data-sb="1"]{border-left-color:var(--p1)}.stagebar button[data-sb="2"]{border-left-color:var(--p2)}.stagebar button[data-sb="3"]{border-left-color:var(--p3)}.stagebar button[data-sb="4"]{border-left-color:var(--p4)}
-.stagebar button[data-sb="1"] span{color:var(--p1)}.stagebar button[data-sb="2"] span{color:var(--p2)}.stagebar button[data-sb="3"] span{color:var(--p3)}.stagebar button[data-sb="4"] span{color:var(--p4)}
-.stagebar button[aria-pressed="true"]{box-shadow:none;outline:2px solid var(--ink);outline-offset:-1px}
-.stgsel button{border:1px solid var(--line);border-radius:var(--r);padding:7px 10px;font-size:13.5px}
-.stgsel button[aria-pressed="true"]{color:var(--ink)}
-.stgsel button[data-setpr="1"][aria-pressed="true"]{background:color-mix(in srgb,var(--p1) 13%,var(--paper));border-color:var(--p1)}
-.stgsel button[data-setpr="2"][aria-pressed="true"]{background:color-mix(in srgb,var(--p2) 15%,var(--paper));border-color:var(--p2)}
-.stgsel button[data-setpr="3"][aria-pressed="true"]{background:color-mix(in srgb,var(--p3) 13%,var(--paper));border-color:var(--p3)}
-.stgsel button[data-setpr="4"][aria-pressed="true"]{background:color-mix(in srgb,var(--p4) 15%,var(--paper));border-color:var(--p4)}
-.stgsel button[aria-pressed="true"] b{color:inherit}
-.stgsel button[data-setpr="1"][aria-pressed="true"] b{color:var(--p1)}.stgsel button[data-setpr="2"][aria-pressed="true"] b{color:var(--p2)}.stgsel button[data-setpr="3"][aria-pressed="true"] b{color:var(--p3)}.stgsel button[data-setpr="4"][aria-pressed="true"] b{color:var(--p4)}
-/* issue list as a table */
-#view{margin-top:6px}
-.thead,#view .row{display:grid;grid-template-columns:44px minmax(0,1fr) 210px 130px minmax(90px,170px) 72px;column-gap:12px;align-items:start}
-.thead{position:sticky;top:var(--barh,48px);z-index:4;background:var(--soft);border:1px solid var(--line);padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--muted)}
-.topic{margin-top:0}
-.topic h2,.donesec .topic h2{font:600 13.5px/1.4 var(--sans);color:var(--ink);background:var(--soft);margin:0;padding:5px 10px;border:1px solid var(--line);border-top:0;gap:6px}
-.topic h2 small{font-size:12.5px}
-.rows{border:1px solid var(--line);border-top:0;border-radius:0;background:var(--paper)}
-#view .row{padding:var(--rowpad) 10px;border-top:1px solid var(--line)}
-#view .row:first-child{border-top:0}
-#view .row:hover{background:var(--soft)}
-#view .row .num{font-size:13px;padding-top:1px}
-#view .row .ttl{font-weight:600;font-size:14px}
-.c-meta{display:contents}
-.c-stg,.c-st,.c-pp,.c-n{font-size:13px;min-width:0;padding-top:1px}
-.c-st{display:flex;gap:6px;align-items:center;white-space:nowrap}
-.c-pp{color:var(--muted);overflow-wrap:anywhere}
-.c-n{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}.c-n .ok{color:var(--s-done);font-weight:600}
-.tcell{gap:1px;align-items:stretch}
-.tcell .ttl{align-self:flex-start}
-.tcell .rsubs{width:100%;min-width:0}
-.fbtn{display:none}
-.rs{font-size:12.5px;line-height:1.4}.rsl{font-size:11.5px;margin-top:2px}
-body.compact .rs{line-height:1.3}body.compact #view .row .ttl{font-size:13.5px}
-.empty{border-radius:var(--r)}
-.donesec{margin-top:18px;border-top:0;padding-top:0}
-.dsh{font:600 13.5px var(--sans);padding:6px 10px;width:100%;background:var(--soft);border:1px solid var(--line);color:var(--muted)}
-.donesec .thead{display:none}
-/* board */
-.board{gap:8px;margin-top:10px}
-.col{border-radius:var(--r);padding:8px;background:var(--soft);border:1px solid var(--line)}
-.col h3{font-size:13px;margin:0 2px 8px}
-.card{border-radius:var(--r);padding:7px 9px;margin-bottom:6px;box-shadow:none}
-.card .ttl{font-weight:600;font-size:13.5px}
-body.compact .card{padding:4px 7px;margin-bottom:4px}
-.card.ghost{box-shadow:0 4px 14px rgba(0,0,0,.18)}
-/* drawer and panels */
-.drawer{width:min(600px,100%)}
-.dh{padding:10px 18px}.db{padding:14px 18px 24px}
-.vtitle,.dht{font:600 17px/1.35 var(--sans)}.vtopic{font-size:12.5px}
-.vtext{font-size:14px}
-.notebox{border-radius:var(--r);border:1px solid var(--line);background:var(--soft)}
-.field{margin-bottom:12px}
-.field input,.field textarea,.field select{border-radius:var(--r);font-size:14px}
-.field input:not([type=checkbox]),.field select{height:32px;padding:0 10px}
-.field .big{font:600 16px var(--sans);height:36px}
-.opts button{border-radius:var(--r);padding:3px 10px 3px 7px;font-size:13px}
-.sec{padding-top:10px;margin-top:12px}
-.sec h4,.subt{font:600 14px var(--sans)}
-.chip{border-radius:var(--r);font-size:12px}
-.opc,.vm,.erow,.fthumb,.gal button,.lnk,.drop,.cc2,.cimg{border-radius:var(--r)}
-.opc.chosen,.vm.chosen{box-shadow:none}
-.cname{font:600 15px/1.35 var(--sans)}
-.cc2.r0{border-radius:var(--r) var(--r) 0 0}.cc2.last{border-radius:0 0 var(--r) var(--r)}
-.erow{padding:8px 12px}
-.els{gap:6px}
-.cmph b,.adsec{font:600 15px var(--sans)}
-.menu{border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12)}
-.toast{border-radius:var(--r);font-size:13px;padding:7px 14px}
-.toast.err{background:#9B2C24}
-.scrim{background:rgba(10,14,16,.25)}
-#banner:not(:empty){border-radius:var(--r);margin-top:8px;font-size:13px}
-/* phone: table becomes stacked rows */
-@media (max-width:760px){
-  .wrap{padding:10px 12px 60px}.bar{margin:8px -12px 0;padding:8px 12px}
-  .thead{display:none}
-  .fbtn{display:inline-flex}
-  #view .row{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
-  #view .row .num{width:24px;flex:none;align-self:flex-start}
-  #view .row .tcell{flex:1 1 calc(100% - 40px)}
-  #view .row .c-meta{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-left:34px;width:calc(100% - 34px)}
-  #view .row .c-pp:empty,#view .row .c-n.zero{display:none}
-  .c-n::before{content:'კომ.·ვარ. '}
-  .lopts{flex-wrap:wrap}
-}
 </style>
 </head>
 <body>
@@ -562,7 +443,7 @@ const tms=v=>v&&typeof v.toMillis==='function'?v.toMillis():(typeof v==='number'
 
 let savedTab='issues',savedSubs=true;try{savedSubs=localStorage.getItem('uni-subs')!=='0'}catch(e){}
 savedTab='issues';try{savedTab=localStorage.getItem('uni-tab')==='cat'?'cat':'issues'}catch(e){}
-const S={density:'normal',issues:new Map(),comments:[],hist:[],histFor:null,histOpen:false,subInfo:new Set(),profiles:new Map(),by:'',options:[],choices:new Map(),tab:savedTab,showSubs:savedSubs,doneOpen:new Set(),doneSec:false,opt:null,optEdit:false,errs:{},view:'topic',q:'',topic:'',person:'',prio:'',status:'',open:null,edit:false,subsOpen:false,newTopic:'',pending:null,loaded:false,user:null};
+const S={issues:new Map(),comments:[],hist:[],histFor:null,histOpen:false,subInfo:new Set(),profiles:new Map(),by:'',options:[],choices:new Map(),tab:savedTab,showSubs:savedSubs,doneOpen:new Set(),doneSec:false,opt:null,optEdit:false,errs:{},view:'topic',q:'',topic:'',person:'',prio:'',status:'',open:null,edit:false,subsOpen:false,newTopic:'',pending:null,loaded:false,user:null};
 let auth,db,unsubs=[];
 
 /* ---------- theme ---------- */
@@ -672,8 +553,6 @@ function showApp(){
   const u=S.user,b=$('#meBtn');
   b.innerHTML=u.photoURL?`<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">`:esc((u.displayName||u.email||'?').trim()[0].toUpperCase());
   $('#meEmail').textContent=u.email;
-  try{S.density=localStorage.getItem('uni-density-'+u.uid)==='compact'?'compact':'normal'}catch(e){}
-  document.body.classList.toggle('compact',S.density==='compact');
   $('#adminOpen2').classList.toggle('hide',!isOwnerUser());$('#adminBtn').classList.toggle('hide',!isOwnerUser());
   if(isOwnerUser())rulesCurrent().then(ok=>{if(ok===false){S.errs.rules='Firebase-ის წესები ძველია — firestore.rules ხელახლა ჩასვით (Firestore → Rules → Publish).';showErrs()}});
 }
@@ -897,17 +776,15 @@ function render(){
   document.querySelectorAll('.seg [data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.view));
 
   const V=$('#view'),vis=items.filter(matches);
-  $('#lopts').innerHTML=`<div class="seg dens" role="group" aria-label="სიმჭიდროვე"><button data-dens="compact" aria-pressed="${S.density==='compact'}">კომპაქტური</button><button data-dens="normal" aria-pressed="${S.density!=='compact'}">ჩვეულებრივი</button></div>`+
-    (S.view!=='board'&&vis.length?`<label><input type="checkbox" id="showSubs" ${S.showSubs?'checked':''}> ქვეპუნქტების ჩვენება</label>`:'');
-  const bar=document.querySelector('#tabIssues .bar');if(bar)document.documentElement.style.setProperty('--barh',bar.offsetHeight+'px');
+  $('#lopts').innerHTML=S.view!=='board'&&vis.length?`<label><input type="checkbox" id="showSubs" ${S.showSubs?'checked':''}> ქვეპუნქტების ჩვენება</label>`:'';
   if(!items.length)V.innerHTML=`<div class="empty"><p>საკითხები ჯერ არ არის.</p><button class="btn" id="importBtn">იმპორტი (JSON)</button></div>`;
   else if(!vis.length)V.innerHTML=`<div class="empty">ვერაფერი მოიძებნა.</div>`;
   else if(S.view==='prio'){
     const act=vis.filter(i=>i.status!=='done');
-    V.innerHTML=theadHTML+[...PR,[0,'']].map(([p,l])=>{const rs=act.filter(i=>(i.priority||0)===p).sort(byN);if(!rs.length)return '';
+    V.innerHTML=[...PR,[0,'']].map(([p,l])=>{const rs=act.filter(i=>(i.priority||0)===p).sort(byN);if(!rs.length)return '';
       return `<section class="topic"><h2>${stgPill(p,true)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('')+doneSecHTML(vis,tps);
   }else if(S.view==='topic'){
-    V.innerHTML=theadHTML+topicGroups(vis.filter(i=>i.status!=='done'),tps)+doneSecHTML(vis,tps);
+    V.innerHTML=topicGroups(vis.filter(i=>i.status!=='done'),tps)+doneSecHTML(vis,tps);
   }else{
     V.innerHTML=`<div class="board">${ST.map(([k,l])=>{const cs=vis.filter(i=>i.status===k).sort((a,b)=>((a.priority||9)-(b.priority||9))||byN(a,b));
       return `<div class="col" data-col="${k}"><h3>${sdot(k)}${l} <small>${cs.length}</small></h3>${cs.map(cardHTML).join('')}</div>`}).join('')}</div>`;
@@ -928,9 +805,7 @@ function subsLines(i){const ss=i.subs||[];if(!S.showSubs||!ss.length)return '';
   return `<div class="rsubs">${op.map(x=>`<div class="rs">${esc(x.t)}</div>`).join('')}${dn.length?`<div class="rsl">გადაწყვეტილი</div>${shown.map(x=>`<div class="rs dn"><span>${esc(x.t)}</span></div>`).join('')}${more?`<button class="rmore" data-moredone="${i.id}">+${more} გადაწყვეტილი</button>`:exp&&dn.length>3?`<button class="rmore" data-moredone="${i.id}">▴</button>`:''}`:''}</div>`}
 const ocHTML=i=>{const n=optsOf(i.id).length;return n?`<span class="oc${S.choices.has(i.id)?' ok':''}">${n} ვარიანტი</span>`:''};
 const creator=i=>!i.imported&&i.createdBy?i.createdBy:'';
-const theadHTML=`<div class="thead" aria-hidden="true"><span>№</span><span>საკითხი</span><span>ეტაპი</span><span>სტატუსი</span><span>პირები</span><span title="კომენტარები · ვარიანტები">კომ. · ვარ.</span></div>`;
-const rowHTML=i=>{const nc=commentsOf(i.id).length,no=optsOf(i.id).length;
-  return `<div class="row" role="button" tabindex="0" data-open="${i.id}" title="${creator(i)?esc('დაამატა: '+nameOf(i.createdBy)+(tms(i.createdAt)?' · '+fmt(i.createdAt):'')):''}"><span class="num">${i.n||''}</span><span class="tcell"><span class="ttl">${esc(i.title)}</span>${subsLines(i)}</span><span class="c-meta"><span class="c-stg">${stgPill(i.priority)}</span><span class="c-st">${sdot(i.status)}<span>${STL[i.status]||''}</span></span><span class="c-pp">${esc((i.people||[]).join(', '))}</span><span class="c-n${nc||no?'':' zero'}"><span title="კომენტარები">${nc||'–'}</span> · <span class="${S.choices.has(i.id)?'ok':''}" title="ვარიანტები">${no||'–'}</span></span></span></div>`};
+const rowHTML=i=>`<div class="row" role="button" tabindex="0" data-open="${i.id}" title="${creator(i)?esc('დაამატა: '+nameOf(i.createdBy)+(tms(i.createdAt)?' · '+fmt(i.createdAt):'')):''}"><span class="num">${i.n||''}</span><span class="tcell"><span class="ttl">${esc(i.title)}</span>${stgPill(i.priority)}</span><span class="meta">${creator(i)?`<span class="byl">${esc(nameOf(i.createdBy))}</span>`:''}${ocHTML(i)}${chips(i.people)}${sdot(i.status)}</span>${subsLines(i)}</div>`;
 const cardHTML=i=>`<div class="card" role="button" tabindex="0" draggable="true" data-open="${i.id}"><div class="ct">${stgPill(i.priority)}</div><div class="ttl"><span class="num">${i.n||''}</span>${esc(i.title)}</div>${chips(i.people)}${ocHTML(i)}</div>`;
 
 /* ---------- drawer ---------- */
@@ -1400,7 +1275,6 @@ document.addEventListener('click',e=>{
   if(t.dataset.rmreq&&A.on){deleteDoc(doc(db,'accessRequests',t.dataset.rmreq)).then(()=>toast('მოთხოვნა წაიშალა'),writeErr);return}
   if(t.dataset.subinfo!==undefined){const k=+t.dataset.subinfo;S.subInfo.has(k)?S.subInfo.delete(k):S.subInfo.add(k);renderDrawer(false);return}
   if(t.dataset.rmlink!==undefined){t.closest('.lrow').remove();return}
-  if(t.dataset.dens){S.density=t.dataset.dens;document.body.classList.toggle('compact',S.density==='compact');try{localStorage.setItem('uni-density-'+S.user.uid,S.density)}catch(e){}render();return}
   if(t.dataset.sb){S.prio=S.prio===t.dataset.sb?'':t.dataset.sb;render();return}
   if(t.dataset.st!==undefined){S.status=S.status===t.dataset.st?'':t.dataset.st;render();return}
   if(t.dataset.v){S.view=t.dataset.v;render();return}
