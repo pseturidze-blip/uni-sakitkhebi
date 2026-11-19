@@ -93,12 +93,12 @@ You already use GitHub Pages, so this is the usual routine:
 6. Click **Save**.
 
 **To add or remove people later, use the app** (owner only: `p.seturidze@gmail.com`, set in `firestore.rules` → `isOwner` and in `index.html` → `OWNER`):
-round account menu (top right) → **რედაქტორები**. The panel shows every entry exactly as stored, in quotes, and marks problems
+the **ადმინი** button at the top (visible only to the owner; a red number = people waiting). The panel shows every entry exactly as stored, in quotes, and marks problems
 (extra spaces or line breaks, invisible characters, capital letters, several e-mails on one line, duplicates).
 **ყველას გასწორება** fixes them all at once. New e-mails are always saved trimmed and in lowercase.
 
 **Refused sign-ins:** when someone not on the list signs in, the app shows their e-mail with a copy button and records the attempt
-(`accessRequests`, readable only by the owner). They appear at the bottom of the same panel with a **დამატება** (add) button.
+(`accessRequests`, readable only by the owner). They appear at the top of the same panel: **დადასტურება** (approve) adds them to the list, **უარყოფა** (dismiss) removes the request. After approval they press **თავიდან ცდა** (try again) on their screen; no new link is needed. A request whose e-mail is already on the list is shown as ✓ სიაშია.
 
 Editing the list directly in the Firebase console still works, but text pasted there can carry invisible spaces; check the panel afterwards.
 Changes take effect immediately. A person who was refused must click **თავიდან ცდა** (try again) or reload the page.

@@ -47,8 +47,12 @@ button{cursor:pointer}
 .diag b{color:var(--accent)}
 .gbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .adw{max-width:720px}
-.adr{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--soft);min-width:0}
-.adr code{font:14px/1.4 ui-monospace,Consolas,monospace;flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.abadge:not(:empty){display:inline-block;margin-left:6px;min-width:20px;padding:0 6px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:700;text-align:center}
+.adsec{margin:18px 0 6px;font:700 15px var(--serif)}
+.adr .acts{display:flex;gap:6px;flex:none}
+.adr .st{font-size:12px;white-space:nowrap}.adr .st.ok{color:var(--s-done)}.adr .st.wait{color:var(--s-discuss)}
+.adr{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--soft);min-width:0}
+.adr code{font:14px/1.4 ui-monospace,Consolas,monospace;flex:1 1 220px;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .adr.bad code{color:var(--accent)}
 .adp{font-size:12px;color:var(--accent);white-space:nowrap}
 .adr .rm{border:0;background:none;color:var(--muted);font-size:18px;padding:0 6px}
@@ -325,6 +329,7 @@ img.missing{visibility:hidden}
 <div class="wrap hide" id="app">
   <header class="top">
     <h1>UNI Mixed-Use</h1>
+    <button class="btn sm hide" id="adminBtn" title="ადმინისტრირება">ადმინი<span class="abadge" id="reqN"></span></button>
     <button class="icon" id="themeBtn"></button>
     <button class="icon" id="meBtn" aria-label="ანგარიში" aria-haspopup="true"></button>
     <div class="menu hide" id="meMenu"><div class="em" id="meEmail"></div><div class="editbar"><button class="btn sm" id="expBtn2">საკითხები CSV</button><button class="btn sm" id="expCat2">კატალოგი CSV</button><button class="btn sm hide" id="adminOpen2">რედაქტორები</button><button class="btn sm" id="signOut">გასვლა</button></div></div>
@@ -468,30 +473,39 @@ function entryProblems(v,ix,arr){
   if(arr.findIndex(x=>typeof x==='string'&&x.trim().toLowerCase()===v.trim().toLowerCase())!==ix)p.push('დუბლიკატი');
   return p}
 const showVal=v=>typeof v==='string'?JSON.stringify(v):String(JSON.stringify(v));
-function openAdmin(){if(!isOwnerUser())return;A.on=true;A.raw=undefined;A.err='';A.reqErr='';
-  const P=$('#admin');P.hidden=false;document.body.style.overflow='hidden';renderAdmin();
-  A.unsubs.push(onSnapshot(doc(db,'config','editors'),d=>{A.raw=d.exists()?d.data().emails:null;A.err='';renderAdmin()},e=>{A.err=e.code||'error';renderAdmin()}));
-  A.unsubs.push(onSnapshot(collection(db,'accessRequests'),q=>{A.reqs=q.docs.map(d=>({...d.data({serverTimestamps:'estimate'}),id:d.id})).sort((a,b)=>tms(b.at)-tms(a.at));A.reqErr='';renderAdmin()},e=>{A.reqErr=e.code||'error';renderAdmin()}))}
-function closeAdmin(){A.on=false;A.unsubs.forEach(f=>{try{f()}catch(e){}});A.unsubs=[];const P=$('#admin');P.hidden=true;P.innerHTML='';document.body.style.overflow=''}
+// owner only: live copies of config/editors and accessRequests (started with the other listeners)
+function adminListen(){
+  unsubs.push(onSnapshot(doc(db,'config','editors'),d=>{A.raw=d.exists()?d.data().emails:null;A.err='';adminChanged()},e=>{A.err=e.code||'error';adminChanged()}));
+  unsubs.push(onSnapshot(collection(db,'accessRequests'),q=>{A.reqs=q.docs.map(d=>({...d.data({serverTimestamps:'estimate'}),id:d.id})).sort((x,y)=>tms(y.at)-tms(x.at));A.reqErr='';adminChanged()},e=>{A.reqErr=e.code||'error';adminChanged()}))}
+const listed=()=>new Set(normEmails(Array.isArray(A.raw)?A.raw:[]));
+const pendingReqs=()=>{const L=listed();return A.reqs.filter(r=>!L.has(String(r.email||'').toLowerCase()))};
+function adminChanged(){const n=pendingReqs().length,el=$('#reqN');if(el)el.textContent=n?String(n):'';renderAdmin()}
+function openAdmin(){if(!isOwnerUser())return;A.on=true;const P=$('#admin');P.hidden=false;document.body.style.overflow='hidden';renderAdmin();P.querySelector('.x')?.focus()}
+function closeAdmin(){A.on=false;const P=$('#admin');P.hidden=true;P.innerHTML='';document.body.style.overflow=''}
 function renderAdmin(){const P=$('#admin');if(!A.on)return;
-  const arr=Array.isArray(A.raw)?A.raw:[],bad=arr.map((v,ix)=>entryProblems(v,ix,arr)),nBad=bad.filter(b=>b.length).length;
+  const arr=Array.isArray(A.raw)?A.raw:[],bad=arr.map((v,ix)=>entryProblems(v,ix,arr)),nBad=bad.filter(x=>x.length).length,L=listed();
+  const reqHTML=A.reqErr?`<p class="cc">ვერ ჩაიტვირთა (${esc(A.reqErr)}).</p>`:A.reqs.length?A.reqs.map(r=>{const inL=L.has(String(r.email||'').toLowerCase());
+    return `<div class="adr"><code>${esc(showVal(r.email))}</code><span class="meta2">${esc(r.name||'')} · ${fmt(r.at)}${r.count>1?` · ${r.count}×`:''}</span>
+      <span class="st ${inL?'ok':'wait'}">${inL?'✓ სიაშია':'ელოდება'}</span>
+      <span class="acts">${inL?'':`<button class="btn sm primary" data-addreq="${esc(r.email)}">დადასტურება</button>`}<button class="btn sm" data-rmreq="${esc(r.id)}">უარყოფა</button></span></div>`}).join(''):'<p class="cc">—</p>';
   const listHTML=A.err?`<div class="empty">ვერ ჩაიტვირთა (${esc(A.err)}). firestore.rules ხელახლა ჩასვით.</div>`
     :A.raw===undefined?'<p class="cc">იტვირთება…</p>'
     :A.raw!==null&&!Array.isArray(A.raw)?`<div class="empty">„emails“ არ არის array: <code>${esc(showVal(A.raw))}</code></div>`
-    :arr.map((v,ix)=>`<div class="adr${bad[ix].length?' bad':''}"><code>${esc(showVal(v))}</code>${bad[ix].length?`<span class="adp">${esc(bad[ix].join(', '))}</span>`:''}<button class="rm" data-rmed="${ix}" aria-label="წაშლა">×</button></div>`).join('')||'<p class="cc">სია ცარიელია.</p>';
-  const known=new Set(normEmails(arr));
-  P.innerHTML=`<div class="cmph"><b>რედაქტორები</b><span class="cc">${arr.length}</span><button class="x" id="adminX" aria-label="დახურვა">×</button></div>
+    :arr.map((v,ix)=>{const me=typeof v==='string'&&v.trim().toLowerCase()===OWNER;
+      return `<div class="adr${bad[ix].length?' bad':''}"><code>${esc(showVal(v))}</code>${bad[ix].length?`<span class="adp">${esc(bad[ix].join(', '))}</span>`:''}<span class="acts">${me?'<span class="meta2">თქვენ</span>':`<button class="btn sm" data-rmed="${ix}">წაშლა</button>`}</span></div>`}).join('')||'<p class="cc">სია ცარიელია.</p>';
+  P.innerHTML=`<div class="cmph"><b>ადმინისტრირება</b><button class="x" id="adminX" aria-label="დახურვა">×</button></div>
     <div class="cmpbody"><div class="adw">
-      <p class="cc" style="margin:10px 0">config/editors.emails — ზუსტად ისე, როგორც შენახულია (ბრჭყალებში).</p>
+      <div class="adsec">შესვლის მოთხოვნები${pendingReqs().length?` <span class="abadge">${pendingReqs().length}</span>`:''}</div>
+      ${reqHTML}
+      <div class="adsec">რედაქტორები <small class="cc">${arr.length}</small></div>
+      <p class="cc" style="margin:0 0 6px">config/editors.emails — ზუსტად ისე, როგორც Firestore-შია შენახული.</p>
       ${listHTML}
-      ${nBad||(A.raw===null)||(A.raw!==undefined&&!Array.isArray(A.raw))?`<p style="margin:12px 0"><button class="btn primary" id="fixEditors">ყველას გასწორება</button> <span class="cc">→ ${normEmails(Array.isArray(A.raw)?A.raw:typeof A.raw==='string'?[A.raw]:[]).length} ელფოსტა</span></p>`:''}
+      ${nBad||(A.raw!==undefined&&A.raw!==null&&!Array.isArray(A.raw))?`<p style="margin:12px 0"><button class="btn primary" id="fixEditors">ყველას გასწორება</button> <span class="cc">→ ${normEmails(Array.isArray(A.raw)?A.raw:typeof A.raw==='string'?[A.raw]:[]).length} ელფოსტა</span></p>`:''}
       <div class="adadd"><input id="newEditor" type="email" inputmode="email" placeholder="email@gmail.com" aria-label="ელფოსტა"><button class="btn" id="addEditor">დამატება</button></div>
-      <h4 style="margin:0 0 6px">უარყოფილი შესვლები${A.reqs.length?` <small class="cc">${A.reqs.length}</small>`:''}</h4>
-      ${A.reqErr?`<p class="cc">ვერ ჩაიტვირთა (${esc(A.reqErr)}).</p>`:A.reqs.length?A.reqs.map(r=>`<div class="adr"><code>${esc(showVal(r.email))}</code><span class="meta2">${esc(r.name||'')} · ${fmt(r.at)}${r.count>1?` · ${r.count}×`:''}${r.inList===true?' · სიაშია (სერვერი)':r.inList===false?' · სიაში არ არის (სერვერი)':''}${r.verified===false?' · email_verified ✗':''}</span>${known.has(String(r.email).toLowerCase())?'<span class="meta2">✓ სიაშია</span>':`<button class="btn sm" data-addreq="${esc(r.email)}">დამატება</button>`}<button class="rm" data-rmreq="${esc(r.id)}" aria-label="წაშლა">×</button></div>`).join(''):'<p class="cc">—</p>'}
     </div></div>`}
 function saveEditors(list){
   if(!list.includes(OWNER))list=[OWNER,...list];
-  return setDoc(doc(db,'config','editors'),{emails:list,updatedAt:serverTimestamp(),updatedBy:S.user.email}).then(()=>toast('შენახულია'),e=>{writeErr(e);throw e})}
+  return setDoc(doc(db,'config','editors'),{emails:list,updatedAt:serverTimestamp(),updatedBy:S.user.email}).then(()=>toast('შენახულია — სიაში '+list.length+' ელფოსტა'),e=>{writeErr(e);throw e})}
 function addEditors(text){const add=normEmails([text]);if(!add.length){toast('ელფოსტა ვერ ვიპოვე.');return Promise.resolve(false)}
   const cur=normEmails(Array.isArray(A.raw)?A.raw:[]);
   return saveEditors([...cur,...add.filter(x=>!cur.includes(x))]).then(()=>true,()=>false)}
@@ -500,7 +514,7 @@ function showApp(){
   const u=S.user,b=$('#meBtn');
   b.innerHTML=u.photoURL?`<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">`:esc((u.displayName||u.email||'?').trim()[0].toUpperCase());
   $('#meEmail').textContent=u.email;
-  $('#adminOpen2').classList.toggle('hide',!isOwnerUser());
+  $('#adminOpen2').classList.toggle('hide',!isOwnerUser());$('#adminBtn').classList.toggle('hide',!isOwnerUser());
   if(isOwnerUser())rulesCurrent().then(ok=>{if(ok===false){S.errs.rules='Firebase-ის წესები ძველია — firestore.rules ხელახლა ჩასვით (Firestore → Rules → Publish).';showErrs()}});
 }
 async function doSignIn(){
@@ -516,7 +530,7 @@ async function doSignIn(){
 function showErrs(){$('#banner').textContent=Object.values(S.errs).join(' ')}
 function listenErr(key,label){return err=>{console.error(err);S.errs[key]=`${label} ვერ ჩაიტვირთა (${err.code||'error'}). გადატვირთეთ გვერდი.`;showErrs()}}
 function listenOk(key){if(S.errs[key]){delete S.errs[key];showErrs()}}
-function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];catReset();S.errs={};showErrs();S.issues=new Map();S.comments=[];S.options=[];S.choices=new Map();S.loaded=false}
+function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];A.raw=undefined;A.reqs=[];A.err='';A.reqErr='';catReset();S.errs={};showErrs();S.issues=new Map();S.comments=[];S.options=[];S.choices=new Map();S.loaded=false}
 function startListeners(){
   let offT=null;
   unsubs.push(onSnapshot(collection(db,'issues'),{includeMetadataChanges:true},snap=>{
@@ -535,6 +549,7 @@ function startListeners(){
     const m=new Map();snap.docs.forEach(d=>m.set(d.id,d.data({serverTimestamps:'estimate'})));S.choices=m;listenOk('ch');if(S.loaded)render();
   },listenErr('ch','არჩევანი')));
   catListen();
+  if(isOwnerUser())adminListen();
 }
 const stamp=()=>({updatedAt:serverTimestamp(),updatedBy:S.user.email});
 const ERR={'permission-denied':'წვდომა აკრძალულია','unavailable':'სერვერთან კავშირი არ არის','deadline-exceeded':'სერვერი არ პასუხობს','not-found':'ჩანაწერი ვერ მოიძებნა','resource-exhausted':'უფასო ლიმიტი ამოიწურა','failed-precondition':'სერვერის პირობა არ დაკმაყოფილდა'};
@@ -1155,7 +1170,7 @@ document.addEventListener('click',e=>{
     if(typeof v==='string'&&v.trim().toLowerCase()===OWNER){toast('საკუთარ ელფოსტას ვერ წაშლით.');return}
     if(confirm(`წავშალოთ ${showVal(v)}?`))saveEditors(normEmails(arr.filter((x,ix)=>ix!==+t.dataset.rmed))).catch(()=>{});return}
   if(t.dataset.addreq&&A.on){const em=t.dataset.addreq,r=A.reqs.find(x=>x.email===em);addEditors(em).then(ok=>{if(ok&&r)deleteDoc(doc(db,'accessRequests',r.id)).catch(()=>{})});return}
-  if(t.dataset.rmreq&&A.on){deleteDoc(doc(db,'accessRequests',t.dataset.rmreq)).catch(writeErr);return}
+  if(t.dataset.rmreq&&A.on){deleteDoc(doc(db,'accessRequests',t.dataset.rmreq)).then(()=>toast('მოთხოვნა წაიშალა'),writeErr);return}
   if(t.dataset.rmlink!==undefined){t.closest('.lrow').remove();return}
   if(t.dataset.st!==undefined){S.status=S.status===t.dataset.st?'':t.dataset.st;render();return}
   if(t.dataset.v){S.view=t.dataset.v;render();return}
@@ -1170,7 +1185,7 @@ document.addEventListener('click',e=>{
     case 'signOut':signOut(auth);break;
     case 'reload':location.reload();break;
     case 'copyEmail':{const t2=S.user?.email||'';(navigator.clipboard?navigator.clipboard.writeText(t2):Promise.reject()).then(()=>toast('დაკოპირდა'),()=>{const r=document.createRange();r.selectNodeContents($('#deniedEmail'));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);toast('მონიშნულია — Ctrl+C')});break}
-    case 'adminOpen':case 'adminOpen2':$('#meMenu').classList.add('hide');openAdmin();break;
+    case 'adminOpen':case 'adminOpen2':case 'adminBtn':$('#meMenu').classList.add('hide');openAdmin();break;
     case 'adminX':closeAdmin();break;
     case 'fixEditors':{const raw=A.raw,list=normEmails(Array.isArray(raw)?raw:typeof raw==='string'?[raw]:[]);if(confirm(`შევინახოთ გასწორებული სია (${list.length} ელფოსტა)?`))saveEditors(list).catch(()=>{});break}
     case 'addEditor':{const inp=$('#newEditor');busy('addEditor',()=>addEditors(inp.value).then(ok=>{if(ok){const i2=$('#newEditor');if(i2)i2.value=''}}));break}
