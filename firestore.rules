@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// UNI Mixed-Use — საკითხები   ·   rules version v2 (see /_rules below)
+// UNI Mixed-Use — საკითხები   ·   rules version v3 (see /_rules below)
 // Only signed-in users whose (lower-case) e-mail is listed in config/editors.emails
 // can read or change anything. Everyone else is refused by the database itself.
 // The owner (OWNER_EMAIL below) can also manage the editor list from the app.
@@ -8,10 +8,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Signed in with an e-mail address. Google sign-in (the only method enabled) proves the
+    // address belongs to the Google account, even when Google reports email_verified = false
+    // (this happens for some accounts), so a Google sign-in is accepted as verified.
     function signedIn() {
       return request.auth != null
         && request.auth.token.email != null
-        && request.auth.token.email_verified == true;
+        && (request.auth.token.email_verified == true
+            || request.auth.token.firebase.sign_in_provider == 'google.com');
     }
 
     // ---- the owner: manages the editor list and sees access requests ----
@@ -60,7 +64,7 @@ service cloud.firestore {
     match /accessRequests/{uid} {
       allow read, delete: if isOwner();
       allow create, update: if request.auth != null && uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['email', 'name', 'uid', 'verified', 'at', 'count'])
+        && request.resource.data.keys().hasOnly(['email', 'name', 'uid', 'verified', 'inList', 'provider', 'at', 'count'])
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.name is string && request.resource.data.name.size() <= 200
@@ -69,10 +73,22 @@ service cloud.firestore {
         && request.resource.data.at == request.time;
     }
 
-    // Version check: the app reads /_rules/v2 (the document does not exist).
+    // Version check: the app reads /_rules/v3 (the document does not exist).
     // If that read is refused, the published rules are older than this file.
     match /_rules/{v} {
-      allow get: if request.auth != null && v == 'v2';
+      allow get: if request.auth != null && v == 'v3';
+    }
+
+    // Diagnostics for the no-access screen (the documents do not exist; only the answer matters):
+    // _inList  — allowed only if the caller's e-mail is in config/editors.emails, as the database sees it
+    // _signedIn — allowed only if the caller passes signedIn() above
+    match /_inList/{x} {
+      allow get: if request.auth != null && request.auth.token.email != null
+        && request.auth.token.email.lower()
+           in get(/databases/$(database)/documents/config/editors).data.emails;
+    }
+    match /_signedIn/{x} {
+      allow get: if signedIn();
     }
 
     // Running issue number (№).

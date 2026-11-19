@@ -431,21 +431,26 @@ function gate(kind,extra){
 }
 /* ---------- access diagnostics ---------- */
 // rules version check: /_rules/v2 may be read by any signed-in user only under the current rules
-const RULES_V='v2';
+const RULES_V='v3';
 const rulesCurrent=()=>getDoc(doc(db,'_rules',RULES_V)).then(()=>true,e=>e&&e.code==='permission-denied'?false:null);
 async function diagnoseDenied(){
   const u=S.user;if(!u)return;
-  let verified=null;try{verified=!!(await u.getIdTokenResult()).claims.email_verified}catch(e){}
-  const rv=await rulesCurrent();
+  let claims={};try{claims=(await u.getIdTokenResult()).claims||{}}catch(e){}
+  const verified=claims.email_verified===true,provider=String(claims.firebase?.sign_in_provider||'');
+  const probe=p=>getDoc(doc(db,p,'check')).then(()=>true,e=>e&&e.code==='permission-denied'?false:null);
+  const [rv,inList,okSigned]=await Promise.all([rulesCurrent(),probe('_inList'),probe('_signedIn')]);
   let logged=false;
-  if(!isOwnerUser()){try{await setDoc(doc(db,'accessRequests',u.uid),{email:u.email||'',name:String(u.displayName||'').slice(0,200),uid:u.uid,verified:!!verified,at:serverTimestamp(),count:increment(1)},{merge:true});logged=true}catch(e){console.error(e)}}
+  if(!isOwnerUser()){try{await setDoc(doc(db,'accessRequests',u.uid),{email:u.email||'',name:String(u.displayName||'').slice(0,200),uid:u.uid,verified,inList:inList===true,provider:provider.slice(0,50),at:serverTimestamp(),count:increment(1)},{merge:true});logged=true}catch(e){console.error(e)}}
   const el=$('#diag');if(!el||S.user!==u)return;
+  const yn=v=>v===true?'✓':v===false?'✗':'?';
   el.innerHTML=[
     rv===false?'<b>Firebase-ის წესები ძველია — firestore.rules ხელახლა ჩასვით.</b>':'',
-    verified===false?'<b>Google ანგარიში დაუდასტურებელია (email_verified = false).</b>':'',
+    rv!==false&&inList===false?'<b>ეს ელფოსტა რედაქტორების სიაში არ არის.</b>':'',
+    rv!==false&&inList===true&&okSigned===false?'<b>სიაშია, მაგრამ შესვლა არ დადასტურდა.</b>':'',
+    rv!==false&&inList===true&&okSigned===true?'სიაშია — დააჭირეთ „თავიდან ცდა“.':'',
+    `<span style="font-size:12px">სია ${yn(inList)} · email_verified ${yn(verified)} · ${esc(provider||'—')} · წესები ${rv===true?RULES_V+' ✓':yn(rv)}</span>`,
     logged?'მოთხოვნა ჩაიწერა — ადმინისტრატორი დაინახავს.':'',
-    isOwnerUser()?'თქვენი ელფოსტა სიაში არ არის ან არასწორადაა ჩაწერილი — გახსენით „რედაქტორები“.':''
-  ].filter(Boolean).join('<br>')||'გადაეცით ეს ელფოსტა ადმინისტრატორს.'}
+  ].filter(Boolean).join('<br>')}
 
 /* ---------- editors panel (owner only) ---------- */
 const A={on:false,unsubs:[],raw:undefined,err:'',reqs:[],reqErr:''};
@@ -482,7 +487,7 @@ function renderAdmin(){const P=$('#admin');if(!A.on)return;
       ${nBad||(A.raw===null)||(A.raw!==undefined&&!Array.isArray(A.raw))?`<p style="margin:12px 0"><button class="btn primary" id="fixEditors">ყველას გასწორება</button> <span class="cc">→ ${normEmails(Array.isArray(A.raw)?A.raw:typeof A.raw==='string'?[A.raw]:[]).length} ელფოსტა</span></p>`:''}
       <div class="adadd"><input id="newEditor" type="email" inputmode="email" placeholder="email@gmail.com" aria-label="ელფოსტა"><button class="btn" id="addEditor">დამატება</button></div>
       <h4 style="margin:0 0 6px">უარყოფილი შესვლები${A.reqs.length?` <small class="cc">${A.reqs.length}</small>`:''}</h4>
-      ${A.reqErr?`<p class="cc">ვერ ჩაიტვირთა (${esc(A.reqErr)}).</p>`:A.reqs.length?A.reqs.map(r=>`<div class="adr"><code>${esc(showVal(r.email))}</code><span class="meta2">${esc(r.name||'')} · ${fmt(r.at)}${r.count>1?` · ${r.count}×`:''}${r.verified===false?' · unverified':''}</span>${known.has(String(r.email).toLowerCase())?'<span class="meta2">✓ სიაშია</span>':`<button class="btn sm" data-addreq="${esc(r.email)}">დამატება</button>`}<button class="rm" data-rmreq="${esc(r.id)}" aria-label="წაშლა">×</button></div>`).join(''):'<p class="cc">—</p>'}
+      ${A.reqErr?`<p class="cc">ვერ ჩაიტვირთა (${esc(A.reqErr)}).</p>`:A.reqs.length?A.reqs.map(r=>`<div class="adr"><code>${esc(showVal(r.email))}</code><span class="meta2">${esc(r.name||'')} · ${fmt(r.at)}${r.count>1?` · ${r.count}×`:''}${r.inList===true?' · სიაშია (სერვერი)':r.inList===false?' · სიაში არ არის (სერვერი)':''}${r.verified===false?' · email_verified ✗':''}</span>${known.has(String(r.email).toLowerCase())?'<span class="meta2">✓ სიაშია</span>':`<button class="btn sm" data-addreq="${esc(r.email)}">დამატება</button>`}<button class="rm" data-rmreq="${esc(r.id)}" aria-label="წაშლა">×</button></div>`).join(''):'<p class="cc">—</p>'}
     </div></div>`}
 function saveEditors(list){
   if(!list.includes(OWNER))list=[OWNER,...list];
