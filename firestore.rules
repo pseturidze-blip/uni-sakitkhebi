@@ -1,8 +1,9 @@
 rules_version = '2';
 
-// UNI Mixed-Use — საკითხები
+// UNI Mixed-Use — საკითხები   ·   rules version v2 (see /_rules below)
 // Only signed-in users whose (lower-case) e-mail is listed in config/editors.emails
 // can read or change anything. Everyone else is refused by the database itself.
+// The owner (OWNER_EMAIL below) can also manage the editor list from the app.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -11,6 +12,11 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email != null
         && request.auth.token.email_verified == true;
+    }
+
+    // ---- the owner: manages the editor list and sees access requests ----
+    function isOwner() {
+      return signedIn() && request.auth.token.email.lower() == 'p.seturidze@gmail.com';
     }
 
     function isEditor() {
@@ -36,9 +42,37 @@ service cloud.firestore {
         && d.updatedAt == request.time;
     }
 
-    // Allow-list: edited only in the Firebase console, never from the app.
+    // Allow-list: config/editors.emails. Read and changed only by the owner
+    // (in the app: account menu → editors, or in the Firebase console).
     match /config/{doc} {
-      allow read, write: if false;
+      allow read: if isOwner() && doc == 'editors';
+      allow create, update: if isOwner() && doc == 'editors'
+        && request.resource.data.keys().hasOnly(['emails', 'updatedAt', 'updatedBy'])
+        && request.resource.data.emails is list
+        && request.resource.data.emails.size() <= 200
+        && request.resource.data.updatedBy == request.auth.token.email
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // Refused sign-ins (one document per Google account): any signed-in person may
+    // record their own attempt; only the owner can read or delete the list.
+    match /accessRequests/{uid} {
+      allow read, delete: if isOwner();
+      allow create, update: if request.auth != null && uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['email', 'name', 'uid', 'verified', 'at', 'count'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.name is string && request.resource.data.name.size() <= 200
+        && request.resource.data.verified is bool
+        && request.resource.data.count is int && request.resource.data.count <= 1000000
+        && request.resource.data.at == request.time;
+    }
+
+    // Version check: the app reads /_rules/v2 (the document does not exist).
+    // If that read is refused, the published rules are older than this file.
+    match /_rules/{v} {
+      allow get: if request.auth != null && v == 'v2';
     }
 
     // Running issue number (№).

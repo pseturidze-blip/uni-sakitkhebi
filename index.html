@@ -41,6 +41,20 @@ button{cursor:pointer}
 .gate{min-height:100vh;display:grid;place-items:center;padding:20px;text-align:center}
 .gcard{max-width:420px}
 .gcard h1{margin-bottom:24px}
+.emailbox{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.emailbox code{font:600 16px/1.4 ui-monospace,Consolas,monospace;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:6px 10px;word-break:break-all;user-select:all}
+.diag{font-size:13px;color:var(--muted);margin:0 0 14px;line-height:1.6}
+.diag b{color:var(--accent)}
+.gbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.adw{max-width:720px}
+.adr{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--soft);min-width:0}
+.adr code{font:14px/1.4 ui-monospace,Consolas,monospace;flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.adr.bad code{color:var(--accent)}
+.adp{font-size:12px;color:var(--accent);white-space:nowrap}
+.adr .rm{border:0;background:none;color:var(--muted);font-size:18px;padding:0 6px}
+.adr .meta2{font-size:12px;color:var(--muted);white-space:nowrap}
+.adadd{display:flex;gap:8px;margin:12px 0 22px}
+.adadd input{flex:1;min-width:0;border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:8px 10px}
 
 /* header */
 .wrap{max-width:1100px;margin:0 auto;padding:24px 20px 80px}
@@ -313,7 +327,7 @@ img.missing{visibility:hidden}
     <h1>UNI Mixed-Use</h1>
     <button class="icon" id="themeBtn"></button>
     <button class="icon" id="meBtn" aria-label="ანგარიში" aria-haspopup="true"></button>
-    <div class="menu hide" id="meMenu"><div class="em" id="meEmail"></div><div class="editbar"><button class="btn sm" id="expBtn2">საკითხები CSV</button><button class="btn sm" id="expCat2">კატალოგი CSV</button><button class="btn sm" id="signOut">გასვლა</button></div></div>
+    <div class="menu hide" id="meMenu"><div class="em" id="meEmail"></div><div class="editbar"><button class="btn sm" id="expBtn2">საკითხები CSV</button><button class="btn sm" id="expCat2">კატალოგი CSV</button><button class="btn sm hide" id="adminOpen2">რედაქტორები</button><button class="btn sm" id="signOut">გასვლა</button></div></div>
   </header>
   <nav class="tabs" role="tablist" aria-label="განყოფილება">
     <button role="tab" data-tab="issues">საკითხები</button><button role="tab" data-tab="cat">მასალების კატალოგი</button>
@@ -357,6 +371,7 @@ img.missing{visibility:hidden}
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-label="საკითხი" aria-hidden="true"></aside>
 <div class="cmp" id="cmp" hidden role="dialog" aria-modal="true" aria-label="შედარება"></div>
+<div class="cmp" id="admin" hidden role="dialog" aria-modal="true" aria-label="რედაქტორები"></div>
 <div class="toast" id="toast" role="status"></div>
 <datalist id="dlTopics"></datalist>
 <datalist id="dlPeople"></datalist>
@@ -367,7 +382,7 @@ import { firebaseConfig } from './firebase-config.js';
 import { initMedia, uploadImage, MAX_INPUT, cachedThumb, hydrateThumbs, openViewer } from './media.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-import { getFirestore, collection, doc, onSnapshot, updateDoc, deleteDoc, addDoc, setDoc, writeBatch, runTransaction, serverTimestamp, arrayUnion, arrayRemove } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+import { getFirestore, collection, doc, onSnapshot, updateDoc, deleteDoc, addDoc, setDoc, writeBatch, runTransaction, serverTimestamp, arrayUnion, arrayRemove, getDoc, increment } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
 /* ---------- constants ---------- */
 const ST=[['open','ღია'],['discuss','განხილვაში'],['wait','მოლოდინში'],['done','გადაწყვეტილია']];
@@ -376,6 +391,8 @@ const PR=[[1,'დაწყებამდე'],[2,'კარკასი'],[3,'�
 const PRL=Object.fromEntries(PR);
 const PRF={1:'მშენებლობის დაწყებამდე',2:'კარკასის ეტაპზე',3:'მოპირკეთების ეტაპზე',4:'ექსპლუატაციამდე'};
 const TOPIC_ORDER=['ფასადი','ინტერიერი','ლიფტი','განათება','გამწვანება','კეთილმოწყობა','პანდუსი','პარკინგი','საინჟინრო','მართვა და სერვისი','სხვა'];
+const OWNER='p.seturidze@gmail.com';   // also in firestore.rules (isOwner)
+const isOwnerUser=()=>!!S.user&&String(S.user.email||'').toLowerCase()===OWNER;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tms=v=>v&&typeof v.toMillis==='function'?v.toMillis():(typeof v==='number'?v:0);
@@ -403,16 +420,83 @@ function gate(kind,extra){
     config:`<p>Firebase-ის პარამეტრები არ არის ჩასმული.</p><p class="cc">firebase-config.js — იხ. SETUP.md</p>`,
     loading:`<p class="cc">იტვირთება…</p>`,
     signin:`<button class="btn primary big" id="signIn">Google-ით შესვლა</button>`,
-    denied:`<p><b>${em}</b></p><p>ამ ანგარიშს წვდომა არ აქვს.</p><button class="btn" id="signOut">სხვა ანგარიშით შესვლა</button>`,
+    denied:`<p>ამ ანგარიშს წვდომა არ აქვს.</p>
+      <div class="emailbox"><code id="deniedEmail">${em}</code><button class="btn sm" id="copyEmail">კოპირება</button></div>
+      <p class="diag" id="diag">…</p>
+      <div class="gbtns">${isOwnerUser()?`<button class="btn primary" id="adminOpen">რედაქტორები</button>`:''}<button class="btn" id="reload">თავიდან ცდა</button><button class="btn" id="signOut">სხვა ანგარიშით შესვლა</button></div>`,
     error:`<p>მონაცემები ვერ ჩაიტვირთა${extra?` (${esc(extra)})`:''}.</p><button class="btn" id="reload">თავიდან</button>`
   }[kind];
   g.innerHTML=`<div class="gcard"><h1>UNI Mixed-Use — საკითხები</h1>${body}</div>`;
+  if(kind==='denied')diagnoseDenied();
 }
+/* ---------- access diagnostics ---------- */
+// rules version check: /_rules/v2 may be read by any signed-in user only under the current rules
+const RULES_V='v2';
+const rulesCurrent=()=>getDoc(doc(db,'_rules',RULES_V)).then(()=>true,e=>e&&e.code==='permission-denied'?false:null);
+async function diagnoseDenied(){
+  const u=S.user;if(!u)return;
+  let verified=null;try{verified=!!(await u.getIdTokenResult()).claims.email_verified}catch(e){}
+  const rv=await rulesCurrent();
+  let logged=false;
+  if(!isOwnerUser()){try{await setDoc(doc(db,'accessRequests',u.uid),{email:u.email||'',name:String(u.displayName||'').slice(0,200),uid:u.uid,verified:!!verified,at:serverTimestamp(),count:increment(1)},{merge:true});logged=true}catch(e){console.error(e)}}
+  const el=$('#diag');if(!el||S.user!==u)return;
+  el.innerHTML=[
+    rv===false?'<b>Firebase-ის წესები ძველია — firestore.rules ხელახლა ჩასვით.</b>':'',
+    verified===false?'<b>Google ანგარიში დაუდასტურებელია (email_verified = false).</b>':'',
+    logged?'მოთხოვნა ჩაიწერა — ადმინისტრატორი დაინახავს.':'',
+    isOwnerUser()?'თქვენი ელფოსტა სიაში არ არის ან არასწორადაა ჩაწერილი — გახსენით „რედაქტორები“.':''
+  ].filter(Boolean).join('<br>')||'გადაეცით ეს ელფოსტა ადმინისტრატორს.'}
+
+/* ---------- editors panel (owner only) ---------- */
+const A={on:false,unsubs:[],raw:undefined,err:'',reqs:[],reqErr:''};
+const EMAIL_RE=/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/gi;
+const cleanStr=v=>String(v).normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g,'');
+function normEmails(list){const out=[];(list||[]).forEach(v=>{if(typeof v!=='string')return;(cleanStr(v).match(EMAIL_RE)||[]).forEach(m=>{m=m.toLowerCase();if(!out.includes(m))out.push(m)})});return out}
+function entryProblems(v,ix,arr){
+  if(typeof v!=='string')return ['ტიპი: '+(Array.isArray(v)?'array':typeof v)];
+  const p=[],m=cleanStr(v).match(EMAIL_RE)||[];
+  if(v!==v.trim())p.push('სივრცე/ახალი ხაზი');
+  if(/[\u00A0\u200B-\u200D\u2060\uFEFF]/.test(v))p.push('უხილავი სიმბოლო');
+  if(v!==v.toLowerCase())p.push('დიდი ასო');
+  if(m.length>1)p.push(m.length+' ელფოსტა ერთ ხაზზე');
+  else if(!m.length||m[0]!==v.trim())p.push('ფორმატი');
+  if(arr.findIndex(x=>typeof x==='string'&&x.trim().toLowerCase()===v.trim().toLowerCase())!==ix)p.push('დუბლიკატი');
+  return p}
+const showVal=v=>typeof v==='string'?JSON.stringify(v):String(JSON.stringify(v));
+function openAdmin(){if(!isOwnerUser())return;A.on=true;A.raw=undefined;A.err='';A.reqErr='';
+  const P=$('#admin');P.hidden=false;document.body.style.overflow='hidden';renderAdmin();
+  A.unsubs.push(onSnapshot(doc(db,'config','editors'),d=>{A.raw=d.exists()?d.data().emails:null;A.err='';renderAdmin()},e=>{A.err=e.code||'error';renderAdmin()}));
+  A.unsubs.push(onSnapshot(collection(db,'accessRequests'),q=>{A.reqs=q.docs.map(d=>({...d.data({serverTimestamps:'estimate'}),id:d.id})).sort((a,b)=>tms(b.at)-tms(a.at));A.reqErr='';renderAdmin()},e=>{A.reqErr=e.code||'error';renderAdmin()}))}
+function closeAdmin(){A.on=false;A.unsubs.forEach(f=>{try{f()}catch(e){}});A.unsubs=[];const P=$('#admin');P.hidden=true;P.innerHTML='';document.body.style.overflow=''}
+function renderAdmin(){const P=$('#admin');if(!A.on)return;
+  const arr=Array.isArray(A.raw)?A.raw:[],bad=arr.map((v,ix)=>entryProblems(v,ix,arr)),nBad=bad.filter(b=>b.length).length;
+  const listHTML=A.err?`<div class="empty">ვერ ჩაიტვირთა (${esc(A.err)}). firestore.rules ხელახლა ჩასვით.</div>`
+    :A.raw===undefined?'<p class="cc">იტვირთება…</p>'
+    :A.raw!==null&&!Array.isArray(A.raw)?`<div class="empty">„emails“ არ არის array: <code>${esc(showVal(A.raw))}</code></div>`
+    :arr.map((v,ix)=>`<div class="adr${bad[ix].length?' bad':''}"><code>${esc(showVal(v))}</code>${bad[ix].length?`<span class="adp">${esc(bad[ix].join(', '))}</span>`:''}<button class="rm" data-rmed="${ix}" aria-label="წაშლა">×</button></div>`).join('')||'<p class="cc">სია ცარიელია.</p>';
+  const known=new Set(normEmails(arr));
+  P.innerHTML=`<div class="cmph"><b>რედაქტორები</b><span class="cc">${arr.length}</span><button class="x" id="adminX" aria-label="დახურვა">×</button></div>
+    <div class="cmpbody"><div class="adw">
+      <p class="cc" style="margin:10px 0">config/editors.emails — ზუსტად ისე, როგორც შენახულია (ბრჭყალებში).</p>
+      ${listHTML}
+      ${nBad||(A.raw===null)||(A.raw!==undefined&&!Array.isArray(A.raw))?`<p style="margin:12px 0"><button class="btn primary" id="fixEditors">ყველას გასწორება</button> <span class="cc">→ ${normEmails(Array.isArray(A.raw)?A.raw:typeof A.raw==='string'?[A.raw]:[]).length} ელფოსტა</span></p>`:''}
+      <div class="adadd"><input id="newEditor" type="email" inputmode="email" placeholder="email@gmail.com" aria-label="ელფოსტა"><button class="btn" id="addEditor">დამატება</button></div>
+      <h4 style="margin:0 0 6px">უარყოფილი შესვლები${A.reqs.length?` <small class="cc">${A.reqs.length}</small>`:''}</h4>
+      ${A.reqErr?`<p class="cc">ვერ ჩაიტვირთა (${esc(A.reqErr)}).</p>`:A.reqs.length?A.reqs.map(r=>`<div class="adr"><code>${esc(showVal(r.email))}</code><span class="meta2">${esc(r.name||'')} · ${fmt(r.at)}${r.count>1?` · ${r.count}×`:''}${r.verified===false?' · unverified':''}</span>${known.has(String(r.email).toLowerCase())?'<span class="meta2">✓ სიაშია</span>':`<button class="btn sm" data-addreq="${esc(r.email)}">დამატება</button>`}<button class="rm" data-rmreq="${esc(r.id)}" aria-label="წაშლა">×</button></div>`).join(''):'<p class="cc">—</p>'}
+    </div></div>`}
+function saveEditors(list){
+  if(!list.includes(OWNER))list=[OWNER,...list];
+  return setDoc(doc(db,'config','editors'),{emails:list,updatedAt:serverTimestamp(),updatedBy:S.user.email}).then(()=>toast('შენახულია'),e=>{writeErr(e);throw e})}
+function addEditors(text){const add=normEmails([text]);if(!add.length){toast('ელფოსტა ვერ ვიპოვე.');return Promise.resolve(false)}
+  const cur=normEmails(Array.isArray(A.raw)?A.raw:[]);
+  return saveEditors([...cur,...add.filter(x=>!cur.includes(x))]).then(()=>true,()=>false)}
 function showApp(){
   $('#gate').classList.add('hide');$('#app').classList.remove('hide');
   const u=S.user,b=$('#meBtn');
   b.innerHTML=u.photoURL?`<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">`:esc((u.displayName||u.email||'?').trim()[0].toUpperCase());
   $('#meEmail').textContent=u.email;
+  $('#adminOpen2').classList.toggle('hide',!isOwnerUser());
+  if(isOwnerUser())rulesCurrent().then(ok=>{if(ok===false){S.errs.rules='Firebase-ის წესები ძველია — firestore.rules ხელახლა ჩასვით (Firestore → Rules → Publish).';showErrs()}});
 }
 async function doSignIn(){
   const p=new GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
@@ -1062,6 +1146,11 @@ document.addEventListener('click',e=>{
   if(t.dataset.cmpsel&&S.cmp){const c=S.cmp,id=t.dataset.cmpsel;if(c.sel.includes(id))c.sel=c.sel.filter(x=>x!==id);else{c.sel.push(id);if(c.sel.length>3)c.sel.shift()}renderCmp();return}
   if(t.dataset.cmpchoose&&S.cmp){const x=cmpCtx(S.cmp),o=x&&x.all.find(y=>y.id===t.dataset.cmpchoose);if(o)x.choose(o);return}
   if(t.dataset.cmpview&&S.cmp){const x=cmpCtx(S.cmp),o=x&&x.all.find(y=>y.id===t.dataset.cmpview);if(o&&(o.files||[]).length)openViewer(o.files.map(f=>({id:f.id,caption:o.name})),0);return}
+  if(t.dataset.rmed!==undefined&&A.on){const arr=Array.isArray(A.raw)?A.raw:[],v=arr[+t.dataset.rmed];
+    if(typeof v==='string'&&v.trim().toLowerCase()===OWNER){toast('საკუთარ ელფოსტას ვერ წაშლით.');return}
+    if(confirm(`წავშალოთ ${showVal(v)}?`))saveEditors(normEmails(arr.filter((x,ix)=>ix!==+t.dataset.rmed))).catch(()=>{});return}
+  if(t.dataset.addreq&&A.on){const em=t.dataset.addreq,r=A.reqs.find(x=>x.email===em);addEditors(em).then(ok=>{if(ok&&r)deleteDoc(doc(db,'accessRequests',r.id)).catch(()=>{})});return}
+  if(t.dataset.rmreq&&A.on){deleteDoc(doc(db,'accessRequests',t.dataset.rmreq)).catch(writeErr);return}
   if(t.dataset.rmlink!==undefined){t.closest('.lrow').remove();return}
   if(t.dataset.st!==undefined){S.status=S.status===t.dataset.st?'':t.dataset.st;render();return}
   if(t.dataset.v){S.view=t.dataset.v;render();return}
@@ -1075,6 +1164,11 @@ document.addEventListener('click',e=>{
     case 'signIn':doSignIn();break;
     case 'signOut':signOut(auth);break;
     case 'reload':location.reload();break;
+    case 'copyEmail':{const t2=S.user?.email||'';(navigator.clipboard?navigator.clipboard.writeText(t2):Promise.reject()).then(()=>toast('დაკოპირდა'),()=>{const r=document.createRange();r.selectNodeContents($('#deniedEmail'));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);toast('მონიშნულია — Ctrl+C')});break}
+    case 'adminOpen':case 'adminOpen2':$('#meMenu').classList.add('hide');openAdmin();break;
+    case 'adminX':closeAdmin();break;
+    case 'fixEditors':{const raw=A.raw,list=normEmails(Array.isArray(raw)?raw:typeof raw==='string'?[raw]:[]);if(confirm(`შევინახოთ გასწორებული სია (${list.length} ელფოსტა)?`))saveEditors(list).catch(()=>{});break}
+    case 'addEditor':{const inp=$('#newEditor');busy('addEditor',()=>addEditors(inp.value).then(ok=>{if(ok){const i2=$('#newEditor');if(i2)i2.value=''}}));break}
     case 'meBtn':$('#meMenu').classList.toggle('hide');break;
     case 'themeBtn':{const k=Object.keys(THEMES);theme=k[(k.indexOf(theme)+1)%k.length];try{localStorage.setItem('uni-theme',theme)}catch(e){}applyTheme();break}
     case 'fBtn':{const f=$('#filters'),o=f.classList.toggle('open');t.setAttribute('aria-expanded',o);break}
@@ -1116,6 +1210,8 @@ document.addEventListener('click',e=>{
 $('#scrim').addEventListener('click',()=>closeIssue());
 document.addEventListener('keydown',e=>{
   const id=e.target.id;
+  if(e.key==='Escape'&&A.on){closeAdmin();return}
+  if(e.key==='Enter'&&id==='newEditor'){e.preventDefault();$('#addEditor')?.click();return}
   if(e.key==='Escape'&&S.cmp){closeCmp();$('#cmpOpen')?.focus();return}
   if(e.key==='Escape'&&S.open==='__cat__'){catEsc();return}
   if(e.key==='Enter'&&S.varEdit&&e.target.tagName==='INPUT'&&(e.target.dataset?.vk||e.target.closest?.('.lrow'))){e.preventDefault();saveVar();return}
@@ -1199,7 +1295,7 @@ function exportCsv(){
 if(!firebaseConfig||!firebaseConfig.apiKey||firebaseConfig.apiKey.startsWith('PASTE')){gate('config')}
 else{
   const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);initMedia({db,getUser:()=>S.user});
-  onAuthStateChanged(auth,u=>{stopListeners();S.user=u;if(!u){gate('signin');return}gate('loading');startListeners()});
+  onAuthStateChanged(auth,u=>{stopListeners();if(A.on)closeAdmin();S.user=u;if(!u){gate('signin');return}gate('loading');startListeners()});
 }
 </script>
 </body>

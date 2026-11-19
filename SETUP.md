@@ -92,9 +92,16 @@ You already use GitHub Pages, so this is the usual routine:
 5. Add one element per person, type **string**, the Google e-mail **in lowercase**, e.g. `pikria.seturidze@arci.ge`.
 6. Click **Save**.
 
-**To add a person later:** open `config` → `editors` → hover over `emails` → **+ (Add field)** inside the array → type the e-mail → **Update**.
-**To remove a person:** hover over their e-mail in the array → trash icon.
-Changes take effect immediately. A person who is removed loses access on their next page load.
+**To add or remove people later, use the app** (owner only: `p.seturidze@gmail.com`, set in `firestore.rules` → `isOwner` and in `index.html` → `OWNER`):
+round account menu (top right) → **რედაქტორები**. The panel shows every entry exactly as stored, in quotes, and marks problems
+(extra spaces or line breaks, invisible characters, capital letters, several e-mails on one line, duplicates).
+**ყველას გასწორება** fixes them all at once. New e-mails are always saved trimmed and in lowercase.
+
+**Refused sign-ins:** when someone not on the list signs in, the app shows their e-mail with a copy button and records the attempt
+(`accessRequests`, readable only by the owner). They appear at the bottom of the same panel with a **დამატება** (add) button.
+
+Editing the list directly in the Firebase console still works, but text pasted there can carry invisible spaces; check the panel afterwards.
+Changes take effect immediately. A person who was refused must click **თავიდან ცდა** (try again) or reload the page.
 
 The e-mail must be the one they use to sign in with Google. Gmail and Google Workspace addresses (like `@arci.ge`) both work.
 
@@ -148,7 +155,8 @@ Two tabs under the title: **issues** (default) and the **materials catalog**.
 | What you see | Cause and fix |
 |---|---|
 | "Firebase-ის პარამეტრები არ არის ჩასმული" | `firebase-config.js` still contains `PASTE_...`. Do step 2, then upload the file to GitHub again. |
-| "ამ ანგარიშს წვდომა არ აქვს" | The signed-in e-mail is not in `config/editors.emails`, or it's written with capital letters or a typo. Fix it in step 8. Then click "სხვა ანგარიშით შესვლა" and sign in again. |
+| "ამ ანგარიშს წვდომა არ აქვს" | The screen shows the exact e-mail they signed in with. Open the editors panel (step 8): the attempt is listed at the bottom, and wrongly written entries are marked in red. Add or fix, then they click **თავიდან ცდა**. |
+| "Firebase-ის წესები ძველია" (on the no-access screen or as a yellow bar) | The rules published on Firebase are older than `firestore.rules`. Paste the file again (step 4). |
 | Sign-in error `auth/unauthorized-domain` | Do step 7. |
 | Sign-in window doesn't open | The browser blocked the pop-up. Allow pop-ups for the site. |
 | Everyone is refused, including you | The rules weren't published (step 4), or `config/editors` doesn't exist or is misspelled (step 8). |
