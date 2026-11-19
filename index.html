@@ -241,6 +241,28 @@ img.missing{visibility:hidden}
 .vprev{left:12px;top:50%;transform:translateY(-50%)}.vnext{right:12px;top:50%;transform:translateY(-50%)}
 .vcap{position:absolute;left:0;right:0;bottom:0;padding:10px 70px calc(12px + env(safe-area-inset-bottom,0px));text-align:center;font-size:13px;background:linear-gradient(transparent,rgba(0,0,0,.6));pointer-events:none}
 @media (max-width:700px){.vprev,.vnext{display:none}}
+.cmp{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.cmp[hidden]{display:none}
+.cmph{display:flex;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid var(--line);min-width:0}
+.cmph b{font:700 17px var(--serif);flex:none}.cmph .cc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cmph .x{margin-left:auto;border:0;background:none;font-size:26px;line-height:1;padding:2px 8px;flex:none}
+.cmpchips{display:flex;gap:6px;flex-wrap:wrap;padding:10px 20px}
+.cmpchips button{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:3px 12px;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmpchips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cmpbody{flex:1;overflow:auto;padding:0 20px 24px}
+.cmpgrid{display:grid;grid-template-columns:repeat(var(--n),minmax(220px,420px));column-gap:12px}
+.cc2{background:var(--paper);border-left:1px solid var(--line);border-right:1px solid var(--line);padding:8px 12px;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.cc2.r0{border-top:1px solid var(--line);border-radius:8px 8px 0 0;padding:0;overflow:hidden}
+.cc2.last{border-bottom:1px solid var(--line);border-radius:0 0 8px 8px;padding-bottom:12px}
+.cc2 .cl{display:block;font-size:11.5px;color:var(--muted);margin-bottom:1px}
+.cc2.chosen{background:color-mix(in srgb,var(--s-done-bg) 55%,var(--paper))}
+.cimg{display:block;width:100%;height:clamp(150px,22vw,260px);border:0;padding:0;background:var(--soft);position:relative;color:var(--muted);font-size:13px}
+.cimg img{width:100%;height:100%;object-fit:cover;display:block}
+.cimg .nf{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11.5px;padding:0 7px;border-radius:10px}
+.cname{font:700 16px/1.3 var(--serif)}
+.cc2 .vtext{margin:0;font-size:13.5px}
+.cc2 .links{margin:0}
+@media (max-width:700px){.cmph,.cmpchips{padding-left:16px;padding-right:16px}.cmpbody{padding:0 16px 24px;scroll-snap-type:x mandatory;scroll-padding-left:16px}.cmpgrid{grid-template-columns:repeat(var(--n),80vw)}.cc2{scroll-snap-align:start}}
 .field select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:8px 10px}
 
 @media (max-width:700px){
@@ -303,6 +325,7 @@ img.missing{visibility:hidden}
 
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-label="საკითხი" aria-hidden="true"></aside>
+<div class="cmp" id="cmp" hidden role="dialog" aria-modal="true" aria-label="შედარება"></div>
 <div class="toast" id="toast" role="status"></div>
 <datalist id="dlTopics"></datalist>
 <datalist id="dlPeople"></datalist>
@@ -551,6 +574,7 @@ function render(){
       return `<div class="col" data-col="${k}"><h3>${sdot(k)}${l} <small>${cs.length}</small></h3>${cs.map(cardHTML).join('')}</div>`}).join('')}</div>`;
   }
   renderDrawer(false);
+  if(S.cmp)renderCmp();
 }
 const topicGroups=(rs0,tps)=>tps.map(t=>{const rs=rs0.filter(i=>(i.topic||'სხვა')===t).sort(byN);if(!rs.length)return '';
   return `<section class="topic"><h2>${esc(t)} <small>${rs.length}</small></h2><div class="rows">${rs.map(rowHTML).join('')}</div></section>`}).join('');
@@ -589,7 +613,33 @@ function viewHTML(i){
 function optsSecHTML(i){const os=optsOf(i.id);
   return `<div class="sec"><h4>ვარიანტები${os.length?` <small>${os.length}</small>`:''}</h4>
     ${os.length?`<div class="opgrid">${os.map(optCardHTML).join('')}</div>`:''}
-    <div class="addrow"><button class="btn sm" id="addOpt">+ ვარიანტი</button></div></div>`}
+    <div class="addrow"><button class="btn sm" id="addOpt">+ ვარიანტი</button>${os.length>=2?`<button class="btn sm" id="cmpOpen">შედარება</button>`:''}</div></div>`}
+/* ---------- side-by-side comparison (2–3 at a time) ---------- */
+// S.cmp = {issue, sel:[option ids]}
+function openCmp(issueId){const os=optsOf(issueId);
+  const pref=[...os.filter(o=>optState(o)==='chosen'),...os.filter(o=>optState(o)==='consider'),...os.filter(o=>optState(o)==='rej')];
+  S.cmp={issue:issueId,sel:pref.slice(0,3).map(o=>o.id)};const C=$('#cmp');C.hidden=false;document.body.style.overflow='hidden';renderCmp();C.querySelector('.x').focus()}
+function closeCmp(){S.cmp=null;$('#cmp').hidden=true;$('#cmp').innerHTML='';document.body.style.overflow=''}
+function renderCmp(){const C=$('#cmp'),c=S.cmp;if(!c)return;const i=S.issues.get(c.issue);if(!i){closeCmp();return}
+  const os=optsOf(i.id);c.sel=c.sel.filter(id=>os.some(o=>o.id===id));
+  const sel=c.sel.map(id=>os.find(o=>o.id===id)),n=Math.max(1,sel.length);
+  const rows=[
+    ['',o=>`<button class="cimg" data-cmpview="${o.id}" aria-label="${esc(o.name)}">${(o.files||[]).length?imgTag(o.files[0].id)+(o.files.length>1?`<span class="nf">${o.files.length}</span>`:''):esc(OTL[o.type]||'')}</button>`],
+    ['',o=>{const st=optState(o);return `<div class="cname">${esc(o.name)}</div><span class="stb ${st}">${OS[st]}</span>`}],
+    ['ტიპი',o=>esc(OTL[o.type]||'')],
+    ['მომწოდებელი',o=>esc(o.supplier||'')],
+    ['ფასი',o=>esc(o.price||'')],
+    ['შენიშვნა',o=>o.note?`<p class="vtext">${esc(o.note)}</p>`:''],
+    ['ბმულები',o=>linksHTML(o.links)],
+    ['',o=>optState(o)==='chosen'?`<span class="chosenby" style="margin:0">✓ ${esc(S.choices.get(i.id)?.byName||'')}</span>`:`<button class="btn sm" data-cmpchoose="${o.id}">არჩევა</button>`]
+  ].filter(([l,f],ix)=>ix<2||ix===7||sel.some(o=>f(o)));
+  const cells=rows.map(([l,f],r)=>sel.map(o=>`<div class="cc2${r===0?' r0':''}${r===rows.length-1?' last':''}${optState(o)==='chosen'?' chosen':''}">${l?`<span class="cl">${l}</span>`:''}${f(o)||'<span class="cc">—</span>'}</div>`).join('')).join('');
+  const sc=C.querySelector('.cmpbody'),pos=sc?[sc.scrollLeft,sc.scrollTop]:null;
+  C.innerHTML=`<div class="cmph"><b>შედარება</b><span class="cc">№ ${i.n||''} · ${esc(i.title)}</span><button class="x" id="cmpX" aria-label="დახურვა">×</button></div>
+    ${os.length>2?`<div class="cmpchips">${os.map(o=>`<button data-cmpsel="${o.id}" aria-pressed="${c.sel.includes(o.id)}">${esc(o.name)}</button>`).join('')}</div>`:''}
+    <div class="cmpbody">${sel.length?`<div class="cmpgrid" style="--n:${n}">${cells}</div>`:`<div class="empty">აირჩიეთ ვარიანტები</div>`}</div>`;
+  if(pos){const b=C.querySelector('.cmpbody');b.scrollLeft=pos[0];b.scrollTop=pos[1]}
+  hydrateThumbs(C)}
 function optCardHTML(o){const st=optState(o),sub=[o.supplier,o.price].filter(Boolean).join(' · ');
   return `<button class="opc ${st}" data-opt="${o.id}"><span class="th">${(o.files||[]).length?imgTag(o.files[0].id)+(o.files.length>1?`<span class="nf">${o.files.length}</span>`:''):esc(OTL[o.type]||'')}</span><span class="ob"><span class="on">${esc(o.name)}</span>${sub?`<span class="os">${esc(sub)}</span>`:''}<span class="stb ${st}">${OS[st]}</span></span></button>`}
 const optHead=i=>`<div class="dh"><button class="back" id="optBack">← № ${i.n||''}</button><button class="x" aria-label="დახურვა">×</button></div>`;
@@ -692,10 +742,11 @@ function renderDrawer(force){
 }
 function showDrawer(){const D=$('#drawer');D.classList.add('on');$('#scrim').classList.add('on');D.setAttribute('aria-hidden','false')}
 function openIssue(id){S.open=id;S.edit=false;S.subsOpen=false;S.opt=null;S.optEdit=false;renderDrawer(true);showDrawer();setTimeout(()=>$('#drawer .x')?.focus(),50)}
-function newIssue(){S.open='__new__';S.edit=true;S.newTopic=S.topic||'';renderDrawer(true);showDrawer();setTimeout(()=>$('#e_title')?.focus(),120)}
+function newIssue(){S.open='__new__';S.edit=true;S.newTopic=S.topic||'';renderDrawer(true);showDrawer();$('#e_title')?.focus({preventScroll:true})}
 function closeIssue(force){
   if(!force&&(S.edit&&isDirty()||S.optEdit&&optDirty())&&!confirm('შეუნახავი ცვლილებები დაიკარგება. დავხუროთ?'))return;
   if(S.optEdit)discardEf();
+  if(S.cmp)closeCmp();
   S.open=null;S.edit=false;S.pending=null;S.opt=null;S.optEdit=false;S.optPending=null;const D=$('#drawer');D.classList.remove('on');$('#scrim').classList.remove('on');D.setAttribute('aria-hidden','true')}
 function editValues(){const o={};document.querySelectorAll('#drawer [data-k]').forEach(el=>o[el.dataset.k]=el.value.trim());return o}
 function isDirty(){const v=editValues(),i=S.open==='__new__'?{topic:S.newTopic}:cur();if(!i)return false;return Object.keys(v).some(k=>(i[k]||'')!==v[k])}
@@ -732,6 +783,9 @@ document.addEventListener('click',e=>{
     if(ef.added.includes(id)){ef.added=ef.added.filter(x=>x!==id);commitDeletes(fileRefs([f])).catch(()=>{})}else if(f)ef.removed.push(f);drawFiles();return}
   if(t.dataset.rmup&&S.ef){S.ef.up.delete(t.dataset.rmup);drawFiles();return}
   if(t.dataset.view!==undefined){const o=curOpt();if(o)openViewer(o.files.map(f=>({id:f.id,caption:o.name})),+t.dataset.view);return}
+  if(t.dataset.cmpsel&&S.cmp){const c=S.cmp,id=t.dataset.cmpsel;if(c.sel.includes(id))c.sel=c.sel.filter(x=>x!==id);else{c.sel.push(id);if(c.sel.length>3)c.sel.shift()}renderCmp();return}
+  if(t.dataset.cmpchoose){const o=S.options.find(x=>x.id===t.dataset.cmpchoose);if(o)setOptState(o,'chosen');return}
+  if(t.dataset.cmpview){const o=S.options.find(x=>x.id===t.dataset.cmpview);if(o&&(o.files||[]).length)openViewer(o.files.map(f=>({id:f.id,caption:o.name})),0);return}
   if(t.dataset.rmlink!==undefined){t.closest('.lrow').remove();return}
   if(t.dataset.st!==undefined){S.status=S.status===t.dataset.st?'':t.dataset.st;render();return}
   if(t.dataset.v){S.view=t.dataset.v;render();return}
@@ -751,14 +805,16 @@ document.addEventListener('click',e=>{
     case 'addBtn':newIssue();break;
     case 'expBtn':case 'expBtn2':exportCsv();break;
     case 'importBtn':$('#importFile').click();break;
-    case 'startEdit':S.edit=true;renderDrawer(true);setTimeout(()=>$('#e_title')?.focus(),50);break;
+    case 'startEdit':S.edit=true;renderDrawer(true);$('#e_title')?.focus({preventScroll:true});break;
     case 'saveEdit':saveEdit();break;
     case 'cancelEdit':cancelEdit();break;
     case 'subToggle':S.subsOpen=!S.subsOpen;renderDrawer(false);break;
     case 'addCm':addComment();break;
-    case 'addOpt':S.opt='__new__';S.optEdit=true;startEf(null);renderDrawer(true);setTimeout(()=>$('#o_name')?.focus(),50);break;
+    case 'cmpOpen':openCmp(S.open);break;
+    case 'cmpX':closeCmp();break;
+    case 'addOpt':S.opt='__new__';S.optEdit=true;startEf(null);renderDrawer(true);$('#o_name')?.focus({preventScroll:true});break;
     case 'optBack':leaveOpt();break;
-    case 'optEditBtn':S.optEdit=true;startEf(curOpt());renderDrawer(true);setTimeout(()=>$('#o_name')?.focus(),50);break;
+    case 'optEditBtn':S.optEdit=true;startEf(curOpt());renderDrawer(true);$('#o_name')?.focus({preventScroll:true});break;
     case 'optSave':saveOpt();break;
     case 'optCancel':leaveOpt();break;
     case 'addLink':{$('#links').insertAdjacentHTML('beforeend',linkRow());$('#links .lrow:last-child .lu').focus();break}
@@ -769,6 +825,7 @@ document.addEventListener('click',e=>{
 $('#scrim').addEventListener('click',()=>closeIssue());
 document.addEventListener('keydown',e=>{
   const id=e.target.id;
+  if(e.key==='Escape'&&S.cmp){closeCmp();$('#cmpOpen')?.focus();return}
   if(e.key==='Escape'&&S.open){S.edit?cancelEdit():S.opt?leaveOpt():closeIssue();return}
   if(e.key==='Enter'&&S.optEdit&&e.target.tagName==='INPUT'&&(e.target.dataset?.ok||e.target.closest?.('.lrow'))){e.preventDefault();saveOpt();return}
   if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('[data-open][role=button]')){e.preventDefault();openIssue(e.target.dataset.open);return}
