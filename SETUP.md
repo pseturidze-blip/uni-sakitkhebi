@@ -113,7 +113,7 @@ During import, "პოზიცია / შენიშვნა" and "შეჯ
 ## Everyday use
 
 - **Open an issue:** click its row. Status, priority, people, sub-points and comments change with one click. **რედაქტირება** edits the title, topic, description and note.
-- **Board (დაფა):** drag a card to another column to change its status. On a phone, open the card and tap the status instead.
+- **Board (დაფა):** drag a card to another column to change its status. On a phone, press and hold the card for a moment, then drag it (or open the card and tap the status).
 - **CSV:** the CSV button (on a phone it is in the round account menu, top right). The file opens correctly in Excel with Georgian text.
 - **Light/dark mode:** the ◐ button cycles through auto → light → dark.
 - Everyone sees changes live; there is no need to refresh.

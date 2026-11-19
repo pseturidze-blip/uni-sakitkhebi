@@ -105,6 +105,9 @@ select.f{padding:8px 10px;border:1px solid var(--line);background:var(--paper);b
 .card{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:9px 11px;margin-bottom:8px;cursor:pointer}
 .card .ct{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
 .card .chips{margin-top:6px}
+.card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.card.lift{opacity:.35}
+.card.ghost{position:fixed;left:0;top:0;z-index:50;margin:0;pointer-events:none;box-shadow:0 10px 28px rgba(0,0,0,.25);transform-origin:center}
 
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(10,14,16,.38);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -526,8 +529,35 @@ document.addEventListener('dragstart',e=>{const c=e.target.closest?.('.card');if
 document.addEventListener('dragover',e=>{const col=e.target.closest?.('.col');if(col&&dragId){e.preventDefault();col.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const col=e.target.closest?.('.col');if(col)col.classList.remove('over')});
 document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.col.over').forEach(c=>c.classList.remove('over'))});
-document.addEventListener('drop',e=>{const col=e.target.closest?.('.col');if(col&&dragId){e.preventDefault();col.classList.remove('over');const i=S.issues.get(dragId);
-  if(i&&i.status!==col.dataset.col){i.status=col.dataset.col;save(i.id,{status:col.dataset.col});render()}dragId=null}});
+function moveTo(id,st){const i=S.issues.get(id);if(i&&st&&i.status!==st){i.status=st;save(i.id,{status:st});render()}}
+const clearOver=keep=>document.querySelectorAll('.col.over').forEach(c=>c!==keep&&c.classList.remove('over'));
+document.addEventListener('drop',e=>{const col=e.target.closest?.('.col');if(col&&dragId){e.preventDefault();col.classList.remove('over');moveTo(dragId,col.dataset.col);dragId=null}});
+
+/* touch: long-press a card (0.35 s), then drag it to another column; a quick swipe still scrolls */
+let tp=null;
+const colAt=(x,y)=>document.elementFromPoint(x,y)?.closest('.col');
+function tpEnd(){if(!tp)return;clearTimeout(tp.timer);cancelAnimationFrame(tp.raf);tp.ghost?.remove();tp.card.classList.remove('lift');
+  const b=document.querySelector('.board');if(b)b.style.scrollSnapType='';clearOver();tp=null}
+function tpLoop(){ // auto-scroll the board near its edges and keep the target column highlighted
+  if(!tp?.on)return;const b=document.querySelector('.board');
+  if(b){const r=b.getBoundingClientRect();if(tp.x<r.left+44)b.scrollLeft-=10;else if(tp.x>r.right-44)b.scrollLeft+=10}
+  const col=colAt(tp.x,tp.y);clearOver(col);col?.classList.add('over');tp.raf=requestAnimationFrame(tpLoop)}
+document.addEventListener('touchstart',e=>{
+  tpEnd();const c=e.target.closest?.('.card');if(!c||e.touches.length>1)return;const t=e.touches[0];
+  tp={id:c.dataset.open,card:c,x:t.clientX,y:t.clientY,x0:t.clientX,y0:t.clientY,on:false};
+  tp.timer=setTimeout(()=>{if(!tp)return;tp.on=true;navigator.vibrate?.(15);
+    const r=c.getBoundingClientRect(),g=c.cloneNode(true);g.className='card ghost';g.removeAttribute('data-open');g.style.width=r.width+'px';
+    tp.dx=tp.x-r.left;tp.dy=tp.y-r.top;g.style.transform=`translate(${r.left}px,${r.top}px)`;document.body.appendChild(g);tp.ghost=g;c.classList.add('lift');
+    const b=document.querySelector('.board');if(b)b.style.scrollSnapType='none';tpLoop()},350);
+},{passive:true});
+document.addEventListener('touchmove',e=>{
+  if(!tp)return;const t=e.touches[0];
+  if(!tp.on){if(Math.hypot(t.clientX-tp.x0,t.clientY-tp.y0)>10)tpEnd();return}
+  e.preventDefault();tp.x=t.clientX;tp.y=t.clientY;tp.ghost.style.transform=`translate(${tp.x-tp.dx}px,${tp.y-tp.dy}px)`;
+},{passive:false});
+document.addEventListener('touchend',e=>{if(!tp)return;if(tp.on){e.preventDefault();moveTo(tp.id,colAt(tp.x,tp.y)?.dataset.col)}tpEnd()});
+document.addEventListener('touchcancel',tpEnd);
+document.addEventListener('contextmenu',e=>{if(tp&&e.target.closest?.('.card'))e.preventDefault()});
 
 /* CSV export (UTF-8 with BOM for Excel) */
 function exportCsv(){
