@@ -263,6 +263,20 @@ img.missing{visibility:hidden}
 .cc2 .vtext{margin:0;font-size:13.5px}
 .cc2 .links{margin:0}
 @media (max-width:700px){.cmph,.cmpchips{padding-left:16px;padding-right:16px}.cmpbody{padding:0 16px 24px;scroll-snap-type:x mandatory;scroll-padding-left:16px}.cmpgrid{grid-template-columns:repeat(var(--n),80vw)}.cc2{scroll-snap-align:start}}
+.els{display:flex;flex-direction:column;gap:8px}
+.erow{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer;min-width:0}
+.erow:hover{border-color:var(--muted)}
+.eh{display:flex;gap:4px 12px;align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+.est{font-size:12.5px;color:var(--s-discuss);white-space:nowrap}.est.ok{color:var(--s-done);font-weight:600}
+.vmini{display:grid;align-items:start;grid-auto-flow:column;grid-auto-columns:minmax(130px,170px);gap:8px;margin-top:8px;overflow-x:auto;padding-bottom:2px}
+.vm{display:flex;flex-direction:column;min-width:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg);padding-bottom:6px}
+.vm.chosen{border-color:var(--s-done);box-shadow:0 0 0 1px var(--s-done)}
+.vm .th{aspect-ratio:16/10;background:var(--soft);display:block;margin-bottom:2px}.vm .th img{width:100%;height:100%;object-fit:cover;display:block}
+.vmn{font-size:13px;font-weight:600;padding:4px 8px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vmp{font-size:12px;color:var(--muted);padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.prow{display:grid;grid-template-columns:1fr 130px;gap:0 10px}
+@media (max-width:700px){.pc{grid-template-columns:1fr}}
 .field select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:8px 10px}
 
 @media (max-width:700px){
@@ -298,7 +312,15 @@ img.missing{visibility:hidden}
   </nav>
   <div id="banner"></div>
 
-  <div id="tabCat" class="hide"><div class="empty">მზადდება</div></div>
+  <div id="tabCat" class="hide">
+    <div class="legend" id="catLegend"></div>
+    <div class="bar">
+      <input class="search" id="cq" type="search" placeholder="ძებნა" aria-label="ძებნა">
+      <select class="f" id="kCat" aria-label="კატეგორია"></select>
+      <button class="btn primary" id="addEl">+ ელემენტი</button>
+    </div>
+    <main id="catView"></main>
+  </div>
 
   <div id="tabIssues">
   <div class="legend" id="legend"></div>
@@ -396,7 +418,7 @@ async function doSignIn(){
 function showErrs(){$('#banner').textContent=Object.values(S.errs).join(' ')}
 function listenErr(key,label){return err=>{console.error(err);S.errs[key]=`${label} ვერ ჩაიტვირთა (${err.code||'error'}). გადატვირთეთ გვერდი.`;showErrs()}}
 function listenOk(key){if(S.errs[key]){delete S.errs[key];showErrs()}}
-function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];S.errs={};showErrs();S.issues=new Map();S.comments=[];S.options=[];S.choices=new Map();S.loaded=false}
+function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];catReset();S.errs={};showErrs();S.issues=new Map();S.comments=[];S.options=[];S.choices=new Map();S.loaded=false}
 function startListeners(){
   let offT=null;
   unsubs.push(onSnapshot(collection(db,'issues'),{includeMetadataChanges:true},snap=>{
@@ -414,6 +436,7 @@ function startListeners(){
   unsubs.push(onSnapshot(collection(db,'choices'),snap=>{
     const m=new Map();snap.docs.forEach(d=>m.set(d.id,d.data({serverTimestamps:'estimate'})));S.choices=m;listenOk('ch');if(S.loaded)render();
   },listenErr('ch','არჩევანი')));
+  catListen();
 }
 const stamp=()=>({updatedAt:serverTimestamp(),updatedBy:S.user.email});
 const ERR={'permission-denied':'წვდომა აკრძალულია','unavailable':'სერვერთან კავშირი არ არის','deadline-exceeded':'სერვერი არ პასუხობს','not-found':'ჩანაწერი ვერ მოიძებნა','resource-exhausted':'უფასო ლიმიტი ამოიწურა','failed-precondition':'სერვერის პირობა არ დაკმაყოფილდა'};
@@ -573,6 +596,7 @@ function render(){
     V.innerHTML=`<div class="board">${ST.map(([k,l])=>{const cs=vis.filter(i=>i.status===k).sort((a,b)=>((a.priority||9)-(b.priority||9))||byN(a,b));
       return `<div class="col" data-col="${k}"><h3>${sdot(k)}${l} <small>${cs.length}</small></h3>${cs.map(cardHTML).join('')}</div>`}).join('')}</div>`;
   }
+  if(S.tab==='cat')renderCat();
   renderDrawer(false);
   if(S.cmp)renderCmp();
 }
@@ -616,27 +640,40 @@ function optsSecHTML(i){const os=optsOf(i.id);
     <div class="addrow"><button class="btn sm" id="addOpt">+ ვარიანტი</button>${os.length>=2?`<button class="btn sm" id="cmpOpen">შედარება</button>`:''}</div></div>`}
 /* ---------- side-by-side comparison (2–3 at a time) ---------- */
 // S.cmp = {issue, sel:[option ids]}
-function openCmp(issueId){const os=optsOf(issueId);
-  const pref=[...os.filter(o=>optState(o)==='chosen'),...os.filter(o=>optState(o)==='consider'),...os.filter(o=>optState(o)==='rej')];
-  S.cmp={issue:issueId,sel:pref.slice(0,3).map(o=>o.id)};const C=$('#cmp');C.hidden=false;document.body.style.overflow='hidden';renderCmp();C.querySelector('.x').focus()}
-function closeCmp(){S.cmp=null;$('#cmp').hidden=true;$('#cmp').innerHTML='';document.body.style.overflow=''}
-function renderCmp(){const C=$('#cmp'),c=S.cmp;if(!c)return;const i=S.issues.get(c.issue);if(!i){closeCmp();return}
-  const os=optsOf(i.id);c.sel=c.sel.filter(id=>os.some(o=>o.id===id));
-  const sel=c.sel.map(id=>os.find(o=>o.id===id)),n=Math.max(1,sel.length);
-  const rows=[
-    ['',o=>`<button class="cimg" data-cmpview="${o.id}" aria-label="${esc(o.name)}">${(o.files||[]).length?imgTag(o.files[0].id)+(o.files.length>1?`<span class="nf">${o.files.length}</span>`:''):esc(OTL[o.type]||'')}</button>`],
+// S.cmp = {kind:'opt'|'var', parent: issue id | element id, sel:[ids]}
+const cimg=(x,fb)=>`<button class="cimg" data-cmpview="${x.id}" aria-label="${esc(x.name)}">${(x.files||[]).length?imgTag(x.files[0].id)+(x.files.length>1?`<span class="nf">${x.files.length}</span>`:''):fb}</button>`;
+const ptxt=t=>t?`<p class="vtext">${esc(t)}</p>`:'';
+function cmpCtx(c){
+  if(c.kind==='var'){const e=K.els.get(c.parent);if(!e)return null;const ch=K.choices.get(e.id);
+    return {head:`${esc(catName(e.category))} · ${esc(e.name)}`,all:varsOf(e.id),on:isChosenV,
+      choose:v=>chooseVar(v),rows:[
+      ['',v=>cimg(v,'')],
+      ['',v=>`<div class="cname">${esc(v.name)}</div>${isChosenV(v)?'<span class="stb chosen">არჩეული</span>':''}`],
+      ['მომწოდებელი',v=>esc(v.supplier||'')],['ფასი',v=>esc(priceTxt(v))],
+      ['მახასიათებლები',v=>ptxt(v.specs)],['+ დადებითი',v=>ptxt(v.pros)],['− უარყოფითი',v=>ptxt(v.cons)],
+      ['შენიშვნა',v=>ptxt(v.note)],['ბმულები',v=>linksHTML(v.links)],
+      ['',v=>isChosenV(v)?`<span class="chosenby" style="margin:0">✓ ${esc(ch?.byName||'')}</span>`:`<button class="btn sm" data-cmpchoose="${v.id}">არჩევა</button>`]]}}
+  const i=S.issues.get(c.parent);if(!i)return null;
+  return {head:`№ ${i.n||''} · ${esc(i.title)}`,all:optsOf(i.id),on:o=>optState(o)==='chosen',
+    choose:o=>setOptState(o,'chosen'),rows:[
+    ['',o=>cimg(o,esc(OTL[o.type]||''))],
     ['',o=>{const st=optState(o);return `<div class="cname">${esc(o.name)}</div><span class="stb ${st}">${OS[st]}</span>`}],
-    ['ტიპი',o=>esc(OTL[o.type]||'')],
-    ['მომწოდებელი',o=>esc(o.supplier||'')],
-    ['ფასი',o=>esc(o.price||'')],
-    ['შენიშვნა',o=>o.note?`<p class="vtext">${esc(o.note)}</p>`:''],
-    ['ბმულები',o=>linksHTML(o.links)],
-    ['',o=>optState(o)==='chosen'?`<span class="chosenby" style="margin:0">✓ ${esc(S.choices.get(i.id)?.byName||'')}</span>`:`<button class="btn sm" data-cmpchoose="${o.id}">არჩევა</button>`]
-  ].filter(([l,f],ix)=>ix<2||ix===7||sel.some(o=>f(o)));
-  const cells=rows.map(([l,f],r)=>sel.map(o=>`<div class="cc2${r===0?' r0':''}${r===rows.length-1?' last':''}${optState(o)==='chosen'?' chosen':''}">${l?`<span class="cl">${l}</span>`:''}${f(o)||'<span class="cc">—</span>'}</div>`).join('')).join('');
+    ['ტიპი',o=>esc(OTL[o.type]||'')],['მომწოდებელი',o=>esc(o.supplier||'')],['ფასი',o=>esc(o.price||'')],
+    ['შენიშვნა',o=>ptxt(o.note)],['ბმულები',o=>linksHTML(o.links)],
+    ['',o=>optState(o)==='chosen'?`<span class="chosenby" style="margin:0">✓ ${esc(S.choices.get(i.id)?.byName||'')}</span>`:`<button class="btn sm" data-cmpchoose="${o.id}">არჩევა</button>`]]}}
+function openCmp(kind,parent){S.cmp={kind,parent,sel:[]};const x=cmpCtx(S.cmp);if(!x){S.cmp=null;return}
+  const rank=it=>x.on(it)?0:(it.rejected?2:1);
+  S.cmp.sel=[...x.all].sort((a,b)=>rank(a)-rank(b)).slice(0,3).map(it=>it.id);
+  const C=$('#cmp');C.hidden=false;document.body.style.overflow='hidden';renderCmp();C.querySelector('.x').focus()}
+function closeCmp(){S.cmp=null;$('#cmp').hidden=true;$('#cmp').innerHTML='';document.body.style.overflow=''}
+function renderCmp(){const C=$('#cmp'),c=S.cmp;if(!c)return;const x=cmpCtx(c);if(!x){closeCmp();return}
+  c.sel=c.sel.filter(id=>x.all.some(o=>o.id===id));
+  const sel=c.sel.map(id=>x.all.find(o=>o.id===id)),n=Math.max(1,sel.length),last=x.rows.length-1;
+  const rows=x.rows.filter(([l,f],ix)=>ix<2||ix===last||sel.some(o=>f(o)));
+  const cells=rows.map(([l,f],r)=>sel.map(o=>`<div class="cc2${r===0?' r0':''}${r===rows.length-1?' last':''}${x.on(o)?' chosen':''}">${l?`<span class="cl">${l}</span>`:''}${f(o)||'<span class="cc">—</span>'}</div>`).join('')).join('');
   const sc=C.querySelector('.cmpbody'),pos=sc?[sc.scrollLeft,sc.scrollTop]:null;
-  C.innerHTML=`<div class="cmph"><b>შედარება</b><span class="cc">№ ${i.n||''} · ${esc(i.title)}</span><button class="x" id="cmpX" aria-label="დახურვა">×</button></div>
-    ${os.length>2?`<div class="cmpchips">${os.map(o=>`<button data-cmpsel="${o.id}" aria-pressed="${c.sel.includes(o.id)}">${esc(o.name)}</button>`).join('')}</div>`:''}
+  C.innerHTML=`<div class="cmph"><b>შედარება</b><span class="cc">${x.head}</span><button class="x" id="cmpX" aria-label="დახურვა">×</button></div>
+    ${x.all.length>2?`<div class="cmpchips">${x.all.map(o=>`<button data-cmpsel="${o.id}" aria-pressed="${c.sel.includes(o.id)}">${esc(o.name)}</button>`).join('')}</div>`:''}
     <div class="cmpbody">${sel.length?`<div class="cmpgrid" style="--n:${n}">${cells}</div>`:`<div class="empty">აირჩიეთ ვარიანტები</div>`}</div>`;
   if(pos){const b=C.querySelector('.cmpbody');b.scrollLeft=pos[0];b.scrollTop=pos[1]}
   hydrateThumbs(C)}
@@ -724,6 +761,7 @@ function editHTML(i){
 }
 function renderDrawer(force){
   const D=$('#drawer');if(!S.open)return;
+  if(S.open==='__cat__'){renderCatDrawer(force);return}
   if(S.open==='__new__'){if(force)D.innerHTML=editHTML(null);return}
   const i=cur();
   if(!i){if(S.pending===S.open)return;closeIssue(true);if(!force)toast('საკითხი წაიშალა');return}
@@ -744,9 +782,10 @@ function showDrawer(){const D=$('#drawer');D.classList.add('on');$('#scrim').cla
 function openIssue(id){S.open=id;S.edit=false;S.subsOpen=false;S.opt=null;S.optEdit=false;renderDrawer(true);showDrawer();setTimeout(()=>$('#drawer .x')?.focus(),50)}
 function newIssue(){S.open='__new__';S.edit=true;S.newTopic=S.topic||'';renderDrawer(true);showDrawer();$('#e_title')?.focus({preventScroll:true})}
 function closeIssue(force){
-  if(!force&&(S.edit&&isDirty()||S.optEdit&&optDirty())&&!confirm('შეუნახავი ცვლილებები დაიკარგება. დავხუროთ?'))return;
-  if(S.optEdit)discardEf();
+  if(!force&&(S.edit&&isDirty()||S.optEdit&&optDirty()||S.elEdit&&elDirty()||S.varEdit&&varDirty())&&!confirm('შეუნახავი ცვლილებები დაიკარგება. დავხუროთ?'))return;
+  if(S.optEdit||S.varEdit)discardEf();
   if(S.cmp)closeCmp();
+  S.el=null;S.elEdit=false;S.var=null;S.varEdit=false;S.elPending=null;S.varPending=null;
   S.open=null;S.edit=false;S.pending=null;S.opt=null;S.optEdit=false;S.optPending=null;const D=$('#drawer');D.classList.remove('on');$('#scrim').classList.remove('on');D.setAttribute('aria-hidden','true')}
 function editValues(){const o={};document.querySelectorAll('#drawer [data-k]').forEach(el=>o[el.dataset.k]=el.value.trim());return o}
 function isDirty(){const v=editValues(),i=S.open==='__new__'?{topic:S.newTopic}:cur();if(!i)return false;return Object.keys(v).some(k=>(i[k]||'')!==v[k])}
@@ -769,10 +808,187 @@ function cancelEdit(){
 function addPerson(){const inp=$('#newPerson');const v=(inp.value||'').trim();if(!v)return;const i=cur();const p=[...(i.people||[])];if(!p.includes(v))p.push(v);inp.value='';savePatch({people:p});$('#newPerson')?.focus()}
 function addSub(){const inp=$('#newSub');const v=(inp.value||'').trim();if(!v)return;const i=cur();inp.value='';savePatch({subs:[...(i.subs||[]).map(x=>({...x})),{t:v,done:false}]});$('#newSub')?.focus()}
 
+/* ======================= MATERIALS CATALOG (მასალების კატალოგი) ======================= */
+// catCategories {name, order} · catElements {category, name, note, issues[]} ·
+// catVariants {element, name, supplier, price(number|null), unit, specs, pros, cons, note, links[], files[]} ·
+// catChoices/{elementId} {variant, by, byName, at}  (one document per element → only one chosen)
+const CAT_SEED=[['c1','საფეხური'],['c2','მოაჯირი'],['c3','იატაკი'],['c4','განათება'],['c5','ფასადის პანელი']];
+const UNITS=['₾/მ²','₾/ც','₾/გრძ.მ','₾/მ³','₾/კომპლ.','$/მ²','€/მ²'];
+const K={cats:[],els:new Map(),vars:[],choices:new Map(),seeded:false,q:'',cat:'',st:''};
+const catName=id=>K.cats.find(c=>c.id===id)?.name||'—';
+const varsOf=eid=>K.vars.filter(v=>v.element===eid).sort((a,b)=>tms(a.createdAt)-tms(b.createdAt)||String(a.name).localeCompare(String(b.name),'ka'));
+const curEl=()=>K.els.get(S.el);
+const curVar=()=>K.vars.find(v=>v.id===S.var);
+const isChosenV=v=>K.choices.get(v.element)?.variant===v.id;
+const priceTxt=v=>typeof v.price==='number'?`${v.price.toLocaleString('ka-GE')} ${v.unit||''}`.trim():'';
+function catListen(){
+  unsubs.push(onSnapshot(collection(db,'catCategories'),snap=>{
+    K.cats=snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0)||String(a.name).localeCompare(String(b.name),'ka'));listenOk('kc');
+    if(!snap.docs.length&&!snap.metadata.fromCache&&!K.seeded){K.seeded=true;seedCats()}
+    if(S.loaded)render()},listenErr('kc','კატეგორიები')));
+  unsubs.push(onSnapshot(collection(db,'catElements'),snap=>{
+    const m=new Map();snap.docs.forEach(d=>m.set(d.id,{...d.data({serverTimestamps:'estimate'}),id:d.id}));K.els=m;listenOk('ke');if(S.loaded)render()},listenErr('ke','კატალოგი')));
+  unsubs.push(onSnapshot(collection(db,'catVariants'),snap=>{
+    K.vars=snap.docs.map(d=>({...d.data({serverTimestamps:'estimate'}),id:d.id}));listenOk('kv');if(S.loaded)render()},listenErr('kv','კატალოგის ვარიანტები')));
+  unsubs.push(onSnapshot(collection(db,'catChoices'),snap=>{
+    const m=new Map();snap.docs.forEach(d=>m.set(d.id,d.data({serverTimestamps:'estimate'})));K.choices=m;listenOk('kch');if(S.loaded)render()},listenErr('kch','კატალოგის არჩევანი')));
+}
+function catReset(){K.cats=[];K.els=new Map();K.vars=[];K.choices=new Map();K.seeded=false}
+function seedCats(){const b=writeBatch(db);CAT_SEED.forEach(([id,name],k)=>b.set(doc(db,'catCategories',id),{name,order:k+1,...stamp()}));b.commit().catch(writeErr)}
+
+/* ---------- list ---------- */
+function elMatches(e){
+  if(K.cat&&e.category!==K.cat)return false;
+  const ch=K.choices.has(e.id);if(K.st==='chosen'&&!ch)return false;if(K.st==='open'&&ch)return false;
+  if(K.q){const q=K.q.toLowerCase();
+    const hay=[e.name,e.note,catName(e.category),...varsOf(e.id).flatMap(v=>[v.name,v.supplier,v.specs,v.pros,v.cons,v.note])].join(' ').toLowerCase();
+    if(!hay.includes(q))return false}
+  return true}
+function renderCat(){
+  const els=[...K.els.values()],nCh=els.filter(e=>K.choices.has(e.id)).length;
+  $('#catLegend').innerHTML=[['','ყველა',els.length,''],['open','გადასაწყვეტი',els.length-nCh,'discuss'],['chosen','არჩეული',nCh,'done']]
+    .map(([k,l,n,c])=>`<button data-kst="${k}" aria-pressed="${K.st===k}">${c?sdot(c):''}${l} <b>${n}</b></button>`).join('');
+  $('#kCat').innerHTML=`<option value="">კატეგორია</option>`+K.cats.map(c=>`<option value="${c.id}" ${c.id===K.cat?'selected':''}>${esc(c.name)} (${els.filter(e=>e.category===c.id).length})</option>`).join('');
+  const V=$('#catView'),vis=els.filter(elMatches);
+  if(!els.length){V.innerHTML=`<div class="empty"><p>ელემენტები ჯერ არ არის.</p><button class="btn primary" id="addEl2">+ ელემენტი</button></div>`;return}
+  if(!vis.length){V.innerHTML=`<div class="empty">ვერაფერი მოიძებნა.</div>`;return}
+  const ids=[...K.cats.map(c=>c.id),...new Set(vis.map(e=>e.category).filter(id=>!K.cats.some(c=>c.id===id)))];
+  V.innerHTML=ids.map(cid=>{const es=vis.filter(e=>e.category===cid).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ka'));if(!es.length)return '';
+    return `<section class="topic"><h2>${esc(catName(cid))} <small>${es.length}</small></h2><div class="els">${es.map(elRowHTML).join('')}</div></section>`}).join('');
+  hydrateThumbs(V)}
+function elRowHTML(e){const vs=varsOf(e.id),ch=K.choices.get(e.id),cv=ch&&vs.find(v=>v.id===ch.variant);
+  return `<div class="erow" role="button" tabindex="0" data-el="${e.id}"><div class="eh"><span class="ttl">${esc(e.name)}</span>${cv?`<span class="est ok">✓ ${esc(cv.name)}</span>`:`<span class="est">გადასაწყვეტი</span>`}</div>
+    ${vs.length?`<div class="vmini">${vs.map(v=>`<div class="vm${isChosenV(v)?' chosen':''}">${(v.files||[]).length?`<span class="th">${imgTag(v.files[0].id)}</span>`:''}<span class="vmn">${esc(v.name)}</span>${priceTxt(v)?`<span class="vmp">${esc(priceTxt(v))}</span>`:''}</div>`).join('')}</div>`:''}</div>`}
+
+/* ---------- drawer: element and variant ---------- */
+function renderCatDrawer(force){
+  const D=$('#drawer');
+  if((S.elEdit||S.varEdit)&&!force)return;
+  let e=null,v=null;
+  if(S.el!=='__new__'){e=curEl();if(!e){if(S.elPending===S.el)return;closeIssue(true);if(!force)toast('ელემენტი წაიშალა');return}}
+  if(S.var&&S.var!=='__new__'){v=curVar();if(!v){if(S.varPending===S.var)return;S.var=null;S.varEdit=false;toast('ვარიანტი წაიშალა')}}
+  const sc=D.querySelector('.db')?.scrollTop||0;
+  D.innerHTML=S.elEdit?elEditHTML(e):S.var?(S.varEdit?varEditHTML(e,v):varViewHTML(e,v)):elViewHTML(e);
+  if(!force){const b=D.querySelector('.db');if(b)b.scrollTop=sc}
+  markBusy();hydrateThumbs(D)}
+function openEl(id){S.open='__cat__';S.el=id;S.elEdit=false;S.var=null;S.varEdit=false;renderDrawer(true);showDrawer();setTimeout(()=>$('#drawer .x')?.focus(),50)}
+function newEl(){S.open='__cat__';S.el='__new__';S.elEdit=true;S.var=null;S.varEdit=false;renderDrawer(true);showDrawer();$('#el_name')?.focus({preventScroll:true})}
+const xBtn=`<button class="x" aria-label="დახურვა">×</button>`;
+function elViewHTML(e){const vs=varsOf(e.id),ch=K.choices.get(e.id),cv=ch&&vs.find(v=>v.id===ch.variant);
+  return `<div class="dh"><span class="num">${esc(catName(e.category))}</span>${xBtn}</div><div class="db">
+    <div class="vhead"><div><div class="vtitle">${esc(e.name)}</div></div><button class="btn sm" id="elEditBtn">რედაქტირება</button></div>
+    ${cv?`<div class="chosenby">✓ ${esc(cv.name)} · ${esc(ch.byName||ch.by)} · ${fmt(ch.at)}</div>`:''}
+    ${e.note?`<p class="vtext">${esc(e.note)}</p>`:''}
+    <div class="sec"><h4>ვარიანტები${vs.length?` <small>${vs.length}</small>`:''}</h4>
+      ${vs.length?`<div class="opgrid">${vs.map(varCardHTML).join('')}</div>`:''}
+      <div class="addrow"><button class="btn sm" id="addVar">+ ვარიანტი</button>${vs.length>=2?`<button class="btn sm" id="cmpOpenV">შედარება</button>`:''}</div></div>
+    <div class="foot"><span class="cc">${esc(e.updatedBy||'')} · ${fmt(e.updatedAt)}</span><button class="btn danger" id="delEl">წაშლა</button></div>
+  </div>`}
+function varCardHTML(v){const ch=isChosenV(v),p=[v.supplier,priceTxt(v)].filter(Boolean).join(' · ');
+  return `<button class="opc ${ch?'chosen':'consider'}" data-var="${v.id}">${(v.files||[]).length?`<span class="th">${imgTag(v.files[0].id)}${v.files.length>1?`<span class="nf">${v.files.length}</span>`:''}</span>`:''}<span class="ob"><span class="on">${esc(v.name)}</span>${p?`<span class="os">${esc(p)}</span>`:''}${ch?`<span class="stb chosen">არჩეული</span>`:''}</span></button>`}
+const varHead=e=>`<div class="dh"><button class="back" id="varBack">← ${esc(e.name)}</button>${xBtn}</div>`;
+const txtBlock=(label,t)=>t?`<div class="field"><span class="flabel">${label}</span><p class="vtext" style="margin:0">${esc(t)}</p></div>`:'';
+function varViewHTML(e,v){const ch=K.choices.get(e.id),on=isChosenV(v);
+  return `${varHead(e)}<div class="db">
+    <div class="vhead"><div><div class="vtitle">${esc(v.name)}</div><div class="vtopic">${esc(catName(e.category))} · ${esc(e.name)}</div></div><button class="btn sm" id="varEditBtn">რედაქტირება</button></div>
+    ${on?`<div class="chosenby">✓ არჩეული · ${esc(ch.byName||ch.by)} · ${fmt(ch.at)} <button class="btn sm ghost" id="varUnchoose">გაუქმება</button></div>`:`<div class="field"><button class="btn primary sm" id="varChoose">არჩევა</button></div>`}
+    ${(v.files||[]).length?`<div class="gal">${v.files.map((f,ix)=>`<button data-vview="${ix}" aria-label="${esc(f.name)}">${imgTag(f.id)}</button>`).join('')}</div>`:''}
+    ${v.supplier||priceTxt(v)?`<dl class="kv">${v.supplier?`<dt>მომწოდებელი</dt><dd>${esc(v.supplier)}</dd>`:''}${priceTxt(v)?`<dt>ფასი</dt><dd>${esc(priceTxt(v))}</dd>`:''}</dl>`:''}
+    ${txtBlock('მახასიათებლები',v.specs)}
+    ${v.pros||v.cons?`<div class="pc">${txtBlock('+ დადებითი',v.pros)}${txtBlock('− უარყოფითი',v.cons)}</div>`:''}
+    ${txtBlock('შენიშვნა',v.note)}
+    ${linksHTML(v.links)}
+    <div class="foot"><span class="cc">${esc(v.updatedBy||'')} · ${fmt(v.updatedAt)}</span><button class="btn danger" id="delVar">წაშლა</button></div>
+  </div>`}
+function elEditHTML(e){const isNew=!e;e=e||{name:'',category:K.cat||K.cats[0]?.id||'',note:''};
+  return `<div class="dh">${isNew?'<b class="dht">ახალი ელემენტი</b>':`<span class="num">${esc(catName(e.category))}</span>`}${xBtn}</div><div class="db">
+    <div class="field"><label for="el_name">ელემენტი</label><input id="el_name" class="big" data-ek="name" value="${esc(e.name)}"></div>
+    <div class="field"><label for="el_cat">კატეგორია</label><select id="el_cat" data-ek="category">${K.cats.map(c=>`<option value="${c.id}" ${c.id===e.category?'selected':''}>${esc(c.name)}</option>`).join('')}<option value="__newcat">+ ახალი კატეგორია…</option></select></div>
+    <div class="field"><label for="el_note">შენიშვნა</label><textarea id="el_note" data-ek="note">${esc(e.note)}</textarea></div>
+    <div class="editbar"><button class="btn primary" id="elSave">შენახვა</button><button class="btn" id="elCancel">გაუქმება</button></div>
+  </div>`}
+function varEditHTML(e,v){v=v||{name:'',supplier:'',price:null,unit:'₾/მ²',specs:'',pros:'',cons:'',note:'',links:[]};
+  const f=(id,k,l,val,attrs='')=>`<div class="field"><label for="${id}">${l}</label><input id="${id}" data-vk="${k}" value="${esc(val)}" ${attrs}></div>`;
+  const ta=(id,k,l,val)=>`<div class="field"><label for="${id}">${l}</label><textarea id="${id}" data-vk="${k}">${esc(val)}</textarea></div>`;
+  return `${varHead(e)}<div class="db">
+    <div class="field"><label for="v_name">ვარიანტი</label><input id="v_name" class="big" data-vk="name" value="${esc(v.name)}"></div>
+    ${f('v_sup','supplier','მომწოდებელი',v.supplier)}
+    <div class="prow">${f('v_price','price','ფასი',typeof v.price==='number'?String(v.price):'','inputmode="decimal"')}${f('v_unit','unit','ერთეული',v.unit||'','list="dlUnits"')}</div>
+    ${ta('v_specs','specs','მახასიათებლები',v.specs)}
+    <div class="pc">${ta('v_pros','pros','+ დადებითი',v.pros)}${ta('v_cons','cons','− უარყოფითი',v.cons)}</div>
+    ${ta('v_note','note','შენიშვნა',v.note)}
+    <div class="field"><span class="flabel">სურათები</span><div class="files" id="ofiles">${filesHTML()}</div><label class="drop" id="drop"><input type="file" id="fileIn" accept="image/*" multiple hidden>+ სურათი</label></div>
+    <div class="field"><span class="flabel">ბმულები</span><div id="links">${(v.links||[]).map(linkRow).join('')}</div><button type="button" class="btn sm" id="addLink">+ ბმული</button></div>
+    <datalist id="dlUnits">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>
+    <div class="editbar"><button class="btn primary" id="varSave">შენახვა</button><button class="btn" id="varCancel">გაუქმება</button></div>
+  </div>`}
+
+/* ---------- element: save / cancel / delete ---------- */
+function elValues(){const o={};document.querySelectorAll('#drawer [data-ek]').forEach(el=>o[el.dataset.ek]=el.value.trim());return o}
+function elDirty(){const v=elValues(),e=S.el==='__new__'?{name:'',note:'',category:v.category}:curEl();if(!e)return false;return ['name','note','category'].some(k=>(e[k]||'')!==v[k])}
+async function saveEl(){const v=elValues();
+  if(!v.name){toast('სახელი ცარიელია.');$('#el_name').focus();return}
+  if(!v.category||v.category==='__newcat'){toast('აირჩიეთ კატეგორია.');return}
+  const isNew=S.el==='__new__';
+  await busy('elSave',async()=>{try{
+    let id=S.el;
+    if(isNew){const ref=doc(collection(db,'catElements'));id=ref.id;await setDoc(ref,{...v,issues:[],createdAt:serverTimestamp(),createdBy:S.user.email,...stamp()})}
+    else await updateDoc(doc(db,'catElements',id),{...v,...stamp()});
+    S.elPending=id;S.el=id;S.elEdit=false;renderDrawer(true);toast(isNew?'ელემენტი დაემატა':'შენახულია')}catch(e){writeErr(e)}})}
+function cancelEl(){if(elDirty()&&!confirm('გავაუქმოთ ცვლილებები?'))return;
+  if(S.el==='__new__'){closeIssue(true);return}S.elEdit=false;renderDrawer(true)}
+async function newCategory(sel){
+  const name=(prompt('ახალი კატეგორია')||'').trim();
+  if(!name||name.length>300){sel.value=sel.dataset.prev||K.cats[0]?.id||'';return}
+  const ref=doc(collection(db,'catCategories'));
+  try{await setDoc(ref,{name,order:Math.max(0,...K.cats.map(c=>c.order||0))+1,...stamp()});
+    sel.insertAdjacentHTML('afterbegin',`<option value="${ref.id}">${esc(name)}</option>`);sel.value=ref.id;sel.dataset.prev=ref.id;toast('კატეგორია დაემატა')}
+  catch(e){sel.value=sel.dataset.prev||'';writeErr(e)}}
+function deleteEl(e){const vs=varsOf(e.id);
+  return commitDeletes([doc(db,'catElements',e.id),...vs.map(v=>doc(db,'catVariants',v.id)),...(K.choices.has(e.id)?[doc(db,'catChoices',e.id)]:[]),...vs.flatMap(v=>fileRefs(v.files))])}
+
+/* ---------- variant: save / cancel / choose / delete ---------- */
+function readLinks(){const links=[];let bad=false;
+  document.querySelectorAll('#links .lrow').forEach(r=>{const u=normUrl(r.querySelector('.lu').value),lb=r.querySelector('.lb').value.trim();
+    if(u===null){bad=true;r.querySelector('.lu').setAttribute('aria-invalid','true')}else if(u)links.push({url:u,label:lb})});
+  return bad?null:links}
+function varValues(){const v={};document.querySelectorAll('#drawer [data-vk]').forEach(el=>v[el.dataset.vk]=el.value.trim());
+  const p=v.price.replace(/\s/g,'').replace(',','.');
+  if(p===''){v.price=null}else{v.price=Number(p);if(!isFinite(v.price))return {err:'ფასი რიცხვით.'}}
+  v.links=readLinks();if(!v.links)return {err:'ბმული არასწორია.'};
+  return v}
+function varDirty(){if(S.ef&&(S.ef.added.length||S.ef.removed.length||uploading()))return true;const v=varValues();if(v.err)return true;
+  const o=S.var==='__new__'?{unit:'₾/მ²',price:null,links:[]}:curVar();if(!o)return false;
+  return ['name','supplier','unit','specs','pros','cons','note'].some(k=>(o[k]||'')!==v[k])||(o.price??null)!==v.price||
+    JSON.stringify((o.links||[]).map(l=>[l.url,l.label||'']))!==JSON.stringify(v.links.map(l=>[l.url,l.label]))}
+async function saveVar(){
+  const v=varValues();if(v.err){toast(v.err);return}
+  if(!v.name){toast('სახელი ცარიელია.');$('#v_name').focus();return}
+  if(uploading()){toast('სურათები იტვირთება…');return}
+  const isNew=S.var==='__new__',ef=S.ef;v.files=ef?ef.files.map(fileMeta):(curVar()?.files||[]);
+  await busy('varSave',async()=>{try{
+    let id=S.var;
+    if(isNew){const ref=doc(collection(db,'catVariants'));id=ref.id;await setDoc(ref,{...v,element:S.el,createdAt:serverTimestamp(),createdBy:S.user.email,...stamp()})}
+    else await updateDoc(doc(db,'catVariants',id),{...v,...stamp()});
+    S.ef=null;S.varPending=id;S.var=id;S.varEdit=false;renderDrawer(true);toast(isNew?'ვარიანტი დაემატა':'შენახულია');
+    if(ef&&ef.removed.length)commitDeletes(fileRefs(ef.removed)).catch(err=>console.error(err))}catch(e){writeErr(e)}})}
+function leaveVar(){if(S.varEdit&&varDirty()&&!confirm('გავაუქმოთ ცვლილებები?'))return;
+  if(S.varEdit)discardEf();
+  if(S.varEdit&&S.var!=='__new__')S.varEdit=false;else{S.var=null;S.varEdit=false}
+  renderDrawer(true)}
+function chooseVar(v){setDoc(doc(db,'catChoices',v.element),{variant:v.id,by:S.user.email,byName:S.user.displayName||S.user.email,at:serverTimestamp()}).then(()=>toast('შენახულია'),writeErr)}
+function unchooseVar(v){if(isChosenV(v))deleteDoc(doc(db,'catChoices',v.element)).then(()=>toast('შენახულია'),writeErr)}
+function deleteVar(v){return commitDeletes([doc(db,'catVariants',v.id),...(isChosenV(v)?[doc(db,'catChoices',v.element)]:[]),...fileRefs(v.files)])}
+function catEsc(){if(S.var)leaveVar();else if(S.elEdit)cancelEl();else closeIssue()}
+
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
   if(!e.target.closest('#meMenu,#meBtn'))$('#meMenu').classList.add('hide');
-  const t=e.target.closest('button,[data-open]');if(!t)return;
+  const t=e.target.closest('button,[data-open],[data-el]');if(!t)return;
+  if(t.dataset.el){openEl(t.dataset.el);return}
+  if(t.dataset.var){S.var=t.dataset.var;S.varEdit=false;renderDrawer(true);$('#drawer .db').scrollTop=0;return}
+  if(t.dataset.vview!==undefined){const v=curVar();if(v)openViewer(v.files.map(f=>({id:f.id,caption:v.name})),+t.dataset.vview);return}
+  if(t.dataset.kst!==undefined){K.st=K.st===t.dataset.kst?'':t.dataset.kst;render();return}
   if(t.dataset.moredone){const id=t.dataset.moredone;S.doneOpen.has(id)?S.doneOpen.delete(id):S.doneOpen.add(id);render();return}
   if(t.id==='doneSecBtn'){S.doneSec=!(S.doneSec||S.status==='done');if(S.status==='done'&&!S.doneSec)S.status='';render();return}
   if(t.dataset.open){openIssue(t.dataset.open);return}
@@ -784,8 +1000,8 @@ document.addEventListener('click',e=>{
   if(t.dataset.rmup&&S.ef){S.ef.up.delete(t.dataset.rmup);drawFiles();return}
   if(t.dataset.view!==undefined){const o=curOpt();if(o)openViewer(o.files.map(f=>({id:f.id,caption:o.name})),+t.dataset.view);return}
   if(t.dataset.cmpsel&&S.cmp){const c=S.cmp,id=t.dataset.cmpsel;if(c.sel.includes(id))c.sel=c.sel.filter(x=>x!==id);else{c.sel.push(id);if(c.sel.length>3)c.sel.shift()}renderCmp();return}
-  if(t.dataset.cmpchoose){const o=S.options.find(x=>x.id===t.dataset.cmpchoose);if(o)setOptState(o,'chosen');return}
-  if(t.dataset.cmpview){const o=S.options.find(x=>x.id===t.dataset.cmpview);if(o&&(o.files||[]).length)openViewer(o.files.map(f=>({id:f.id,caption:o.name})),0);return}
+  if(t.dataset.cmpchoose&&S.cmp){const x=cmpCtx(S.cmp),o=x&&x.all.find(y=>y.id===t.dataset.cmpchoose);if(o)x.choose(o);return}
+  if(t.dataset.cmpview&&S.cmp){const x=cmpCtx(S.cmp),o=x&&x.all.find(y=>y.id===t.dataset.cmpview);if(o&&(o.files||[]).length)openViewer(o.files.map(f=>({id:f.id,caption:o.name})),0);return}
   if(t.dataset.rmlink!==undefined){t.closest('.lrow').remove();return}
   if(t.dataset.st!==undefined){S.status=S.status===t.dataset.st?'':t.dataset.st;render();return}
   if(t.dataset.v){S.view=t.dataset.v;render();return}
@@ -810,7 +1026,20 @@ document.addEventListener('click',e=>{
     case 'cancelEdit':cancelEdit();break;
     case 'subToggle':S.subsOpen=!S.subsOpen;renderDrawer(false);break;
     case 'addCm':addComment();break;
-    case 'cmpOpen':openCmp(S.open);break;
+    case 'cmpOpen':openCmp('opt',S.open);break;
+    case 'cmpOpenV':openCmp('var',S.el);break;
+    case 'addEl':case 'addEl2':newEl();break;
+    case 'elEditBtn':S.elEdit=true;renderDrawer(true);$('#el_name')?.focus({preventScroll:true});break;
+    case 'elSave':saveEl();break;
+    case 'elCancel':cancelEl();break;
+    case 'delEl':{const e=curEl();if(e&&confirm(`წავშალოთ „${e.name}“ და მისი ვარიანტები?`)){deleteEl(e).then(()=>toast('ელემენტი წაიშალა'),writeErr);closeIssue(true)}break}
+    case 'addVar':S.var='__new__';S.varEdit=true;startEf(null);renderDrawer(true);$('#v_name')?.focus({preventScroll:true});break;
+    case 'varEditBtn':S.varEdit=true;startEf(curVar());renderDrawer(true);$('#v_name')?.focus({preventScroll:true});break;
+    case 'varSave':saveVar();break;
+    case 'varCancel':case 'varBack':leaveVar();break;
+    case 'varChoose':{const v=curVar();if(v)chooseVar(v);break}
+    case 'varUnchoose':{const v=curVar();if(v)unchooseVar(v);break}
+    case 'delVar':{const v=curVar();if(v&&confirm(`წავშალოთ ვარიანტი „${v.name}“?`)){deleteVar(v).then(()=>toast('ვარიანტი წაიშალა'),writeErr);S.var=null;S.varEdit=false;renderDrawer(true)}break}
     case 'cmpX':closeCmp();break;
     case 'addOpt':S.opt='__new__';S.optEdit=true;startEf(null);renderDrawer(true);$('#o_name')?.focus({preventScroll:true});break;
     case 'optBack':leaveOpt();break;
@@ -826,6 +1055,10 @@ $('#scrim').addEventListener('click',()=>closeIssue());
 document.addEventListener('keydown',e=>{
   const id=e.target.id;
   if(e.key==='Escape'&&S.cmp){closeCmp();$('#cmpOpen')?.focus();return}
+  if(e.key==='Escape'&&S.open==='__cat__'){catEsc();return}
+  if(e.key==='Enter'&&S.varEdit&&e.target.tagName==='INPUT'&&(e.target.dataset?.vk||e.target.closest?.('.lrow'))){e.preventDefault();saveVar();return}
+  if(e.key==='Enter'&&S.elEdit&&e.target.tagName==='INPUT'&&e.target.dataset?.ek){e.preventDefault();saveEl();return}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('[data-el][role=button]')){e.preventDefault();openEl(e.target.dataset.el);return}
   if(e.key==='Escape'&&S.open){S.edit?cancelEdit():S.opt?leaveOpt():closeIssue();return}
   if(e.key==='Enter'&&S.optEdit&&e.target.tagName==='INPUT'&&(e.target.dataset?.ok||e.target.closest?.('.lrow'))){e.preventDefault();saveOpt();return}
   if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('[data-open][role=button]')){e.preventDefault();openIssue(e.target.dataset.open);return}
@@ -839,11 +1072,14 @@ document.addEventListener('change',e=>{
   if(el.dataset?.subchk!==undefined){const s=(cur().subs||[]).map(x=>({...x}));s[+el.dataset.subchk].done=el.checked;savePatch({subs:s})}
   if(el.id==='showSubs'){S.showSubs=el.checked;try{localStorage.setItem('uni-subs',el.checked?'1':'0')}catch(e){}render()}
   if(el.id==='fTopic'){S.topic=el.value;render()}
+  if(el.id==='kCat'){K.cat=el.value;render()}
+  if(el.id==='el_cat'){if(el.value==='__newcat')newCategory(el);else el.dataset.prev=el.value}
   if(el.id==='fPerson'){S.person=el.value;render()}
   if(el.id==='fPrio'){S.prio=el.value;render()}
   if(el.id==='fileIn'&&el.files.length){addFiles(el.files);el.value=''}
   if(el.id==='importFile'&&el.files[0]){importJson(el.files[0]);el.value=''}
 });
+let cqt;$('#cq').addEventListener('input',e=>{clearTimeout(cqt);cqt=setTimeout(()=>{K.q=e.target.value.trim();render()},150)});
 let qt;$('#q').addEventListener('input',e=>{clearTimeout(qt);qt=setTimeout(()=>{S.q=e.target.value.trim();render()},150)});
 
 /* drop images on the editor's drop zone */
