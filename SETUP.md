@@ -14,8 +14,9 @@ Files in this folder:
 | File | What it is |
 |---|---|
 | `index.html` | The app. |
+| `media.js` | Image compression, storage and the full-screen viewer (used by `index.html`). |
 | `firebase-config.js` | The **only** file you edit (step 2). |
-| `firestore.rules` | Security rules. You paste them into Firebase (step 4). |
+| `firestore.rules` | Security rules. You paste them into Firebase (step 4), and again whenever this file changes. |
 | `uni-sakitkhebi-data.json` | The current 19 issues, for the one-time import (step 9). |
 | `SETUP.md` | This guide. |
 
@@ -112,9 +113,33 @@ During import, "პოზიცია / შენიშვნა" and "შეჯ
 
 ## Everyday use
 
+Two tabs under the title: **issues** (default) and the **materials catalog**.
+
+### Issues
 - **Open an issue:** click its row. Status, priority, people, sub-points and comments change with one click. **რედაქტირება** edits the title, topic, description and note.
+- **Sub-points** show under each row: open ones first, done ones greyed and struck through below them. The checkbox above the list hides them.
+- **Decided issues** (status გადაწყვეტილია) move to a collapsed section at the bottom of the list. Nothing is deleted; set another status to bring an issue back.
 - **Board (დაფა):** drag a card to another column to change its status. On a phone, press and hold the card for a moment, then drag it (or open the card and tap the status).
-- **CSV:** the CSV button (on a phone it is in the round account menu, top right). The file opens correctly in Excel with Georgian text.
+- Every save shows a short message at the bottom. A **red** message means it was not saved, with the reason in brackets.
+
+### Options inside an issue (ვარიანტები)
+- In an opened issue: **+ ვარიანტი** adds an option (e.g. a lift model or a lobby design) with type, note, supplier, price, images and links.
+- State: under discussion / chosen / rejected. Only one option per issue can be chosen; the app records who chose it and when.
+- **შედარება** shows 2–3 options side by side. The list row shows a small counter (green when one is chosen).
+
+### Materials catalog (მასალების კატალოგი)
+- Category → element (e.g. "ლობის იატაკი") → variants. The five starting categories are created automatically; add more from the element editor (last item of the category list).
+- A variant has images, supplier, price + unit, characteristics, pros, cons, note and links. **არჩევა** marks it chosen (one per element; the others stay).
+- Filters: the counts at the top (all / undecided / chosen), category, search.
+- **Links to issues:** in an element, "+ საკითხი"; in an issue, "+ მასალა". Both sides show the link; click it to jump, and "←" to go back.
+
+### Images and links
+- Images are compressed in the browser (max 1600 px, under 1 MB) and stored in Firestore, so the free plan is enough. Roughly **2,500–4,000 images** fit in the free 1 GiB.
+- Accepted: photos, renders and drawings as image files up to 15 MB. **PDFs and very large drawings: add a link** (e.g. Google Drive) instead. Drive links show a preview when the file is shared as "Anyone with the link".
+- Removing an image, an option, a variant, an element or an issue also deletes its images.
+
+### Other
+- **CSV:** the CSV button on each tab (on a phone: in the round account menu, top right). Issues and catalog export separately; both open correctly in Excel with Georgian text.
 - **Light/dark mode:** the ◐ button cycles through auto → light → dark.
 - Everyone sees changes live; there is no need to refresh.
 
@@ -127,10 +152,15 @@ During import, "პოზიცია / შენიშვნა" and "შეჯ
 | Sign-in error `auth/unauthorized-domain` | Do step 7. |
 | Sign-in window doesn't open | The browser blocked the pop-up. Allow pop-ups for the site. |
 | Everyone is refused, including you | The rules weren't published (step 4), or `config/editors` doesn't exist or is misspelled (step 8). |
+| Red message "ვერ შეინახა: … (permission-denied)" | The rules on Firebase are older than `firestore.rules`, or your e-mail is not on the editor list. Paste the rules again (step 4) and check step 8. |
+| Red message with `resource-exhausted` | A free daily limit or the 1 GiB storage is used up. Delete old images, or wait until the next day for daily limits. |
+| Yellow bar at the top | The live connection to the database is interrupted. Check the internet connection and reload with Ctrl+F5. |
 | You changed `index.html` but the site looks old | GitHub Pages takes 1–2 minutes. Then reload with Ctrl+F5. |
 
 ## Good to know
 
 - **Two people editing the same issue at the same moment:** status, priority, people and sub-points are saved per field. If two people change the *same* field within a second, the last change wins.
 - **Backups:** use the CSV button from time to time, or set up a scheduled export in Google Cloud (optional).
-- **Costs:** a team of this size stays well inside the free plan (50,000 reads and 20,000 writes per day).
+- **Costs:** a team of this size stays well inside the free plan (50,000 reads and 20,000 writes per day, 1 GiB stored).
+- **How much space is used:** Firebase console → **Firestore Database → Usage**.
+- **Where the data lives (for an administrator):** `issues`, `comments`, `meta` (issue numbers), `options` + `choices` (options inside issues), `catCategories`, `catElements`, `catVariants` + `catChoices` (catalog), `images` + `thumbs` (pictures), `config/editors` (who may edit).
