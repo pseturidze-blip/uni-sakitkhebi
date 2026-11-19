@@ -71,6 +71,129 @@ service cloud.firestore {
       allow delete: if isEditor();
     }
 
+    // ---------- Options (ვარიანტები) and materials catalog ----------
+
+    function stamped(d) {
+      return d.updatedBy == request.auth.token.email && d.updatedAt == request.time;
+    }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function nameOk(v) { return v is string && v.size() > 0 && v.size() <= 300; }
+    function linksOk(v) { return v is list && v.size() <= 20; }
+    function filesOk(v) { return v is list && v.size() <= 60; }
+    function docExists(coll, id) {
+      return id is string && exists(/databases/$(database)/documents/$(coll)/$(id));
+    }
+
+    // An option under discussion inside an issue. Issue documents are not changed.
+    function validOption() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['issue', 'name', 'type', 'note', 'supplier', 'price',
+                              'links', 'rejected', 'files', 'updatedAt', 'updatedBy'])
+        && docExists('issues', d.issue)
+        && nameOk(d.name)
+        && d.type in ['drawing', 'photo', 'render', 'sample', 'pdf']
+        && str(d.note, 5000) && str(d.supplier, 300) && str(d.price, 100)
+        && linksOk(d.links) && d.rejected is bool && filesOk(d.files)
+        && stamped(d);
+    }
+    match /options/{id} {
+      allow read: if isEditor();
+      allow create, update: if isEditor() && validOption()
+        && (resource == null || request.resource.data.issue == resource.data.issue);
+      allow delete: if isEditor();
+    }
+
+    // The chosen option of an issue: one document per issue, so only one can be chosen.
+    match /choices/{issueId} {
+      allow read: if isEditor();
+      allow create, update: if isEditor()
+        && docExists('issues', issueId)
+        && docExists('options', request.resource.data.option)
+        && get(/databases/$(database)/documents/options/$(request.resource.data.option)).data.issue == issueId
+        && request.resource.data.by == request.auth.token.email
+        && request.resource.data.byName is string
+        && request.resource.data.at == request.time;
+      allow delete: if isEditor();
+    }
+
+    match /catCategories/{id} {
+      allow read: if isEditor();
+      allow create, update: if isEditor()
+        && nameOk(request.resource.data.name)
+        && request.resource.data.order is number
+        && stamped(request.resource.data);
+      allow delete: if isEditor();
+    }
+
+    // A building element, e.g. "ლობის იატაკი"; issues = linked issue ids.
+    match /catElements/{id} {
+      allow read: if isEditor();
+      allow create, update: if isEditor()
+        && request.resource.data.keys().hasAll(['category', 'name', 'note', 'issues', 'updatedAt', 'updatedBy'])
+        && docExists('catCategories', request.resource.data.category)
+        && nameOk(request.resource.data.name)
+        && str(request.resource.data.note, 5000)
+        && request.resource.data.issues is list && request.resource.data.issues.size() <= 50
+        && stamped(request.resource.data);
+      allow delete: if isEditor();
+    }
+
+    function validVariant() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['element', 'name', 'supplier', 'price', 'unit', 'specs', 'pros',
+                              'cons', 'links', 'note', 'files', 'updatedAt', 'updatedBy'])
+        && docExists('catElements', d.element)
+        && nameOk(d.name)
+        && str(d.supplier, 300)
+        && (d.price == null || d.price is number)
+        && str(d.unit, 30)
+        && str(d.specs, 5000) && str(d.pros, 3000) && str(d.cons, 3000) && str(d.note, 5000)
+        && linksOk(d.links) && filesOk(d.files)
+        && stamped(d);
+    }
+    match /catVariants/{id} {
+      allow read: if isEditor();
+      allow create, update: if isEditor() && validVariant()
+        && (resource == null || request.resource.data.element == resource.data.element);
+      allow delete: if isEditor();
+    }
+
+    // The chosen variant of an element: one document per element.
+    match /catChoices/{elementId} {
+      allow read: if isEditor();
+      allow create, update: if isEditor()
+        && docExists('catElements', elementId)
+        && docExists('catVariants', request.resource.data.variant)
+        && get(/databases/$(database)/documents/catVariants/$(request.resource.data.variant)).data.element == elementId
+        && request.resource.data.by == request.auth.token.email
+        && request.resource.data.byName is string
+        && request.resource.data.at == request.time;
+      allow delete: if isEditor();
+    }
+
+    // Uploaded images, compressed in the browser. Each image is two documents with the
+    // same id: images/{id} (max ~1600 px) and thumbs/{id} (small preview). Never edited.
+    function validImage(maxBytes) {
+      let d = request.resource.data;
+      return d.data is bytes && d.data.size() > 0 && d.data.size() <= maxBytes
+        && d.mime in ['image/webp', 'image/jpeg']
+        && d.w is int && d.h is int
+        && d.createdBy == request.auth.token.email
+        && d.createdAt == request.time;
+    }
+    match /images/{id} {
+      allow read: if isEditor();
+      allow create: if isEditor() && validImage(1000000);
+      allow update: if false;
+      allow delete: if isEditor();
+    }
+    match /thumbs/{id} {
+      allow read: if isEditor();
+      allow create: if isEditor() && validImage(150000);
+      allow update: if false;
+      allow delete: if isEditor();
+    }
+
     // Everything else is closed.
     match /{path=**} {
       allow read, write: if false;
